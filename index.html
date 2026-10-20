@@ -759,7 +759,93 @@ function animateWorld(now, dt) {
   for (const b of birds) { const u = b.userData, a = t * u.s + u.a; b.position.set(Math.cos(a) * u.r, u.h + Math.sin(t + u.a) * 0.5, Math.sin(a) * u.r - 6); b.rotation.y = -a; b.scale.y = 1 + 0.6 * Math.sin(t * 6 + u.a); }
   lanterns.forEach((l, i) => { l.rotation.z = Math.sin(t * 0.9 + i) * 0.06; l.children[1].material.emissiveIntensity = 2 + Math.sin(t * 7 + i * 3) * 0.25; });
   for (const c of marketCamels) animateRig(c, dt);
+  animatePeople(now, dt);
 }
+// ---------- Bazaar people ----------
+// Merchants behind every stall show their goods and call out with a raised hand; shoppers stand haggling
+// in front of the stalls; passers-by stroll along the row behind the board. Sculpted in tools/people.py.
+const PEOPLE = {}, folk = [];
+const ROBES = [0x6b2a2a, 0x2d4a6b, 0x3f5a2e, 0x7a5a2a, 0x4a2e5a, 0x8a3f1f, 0x2a4a4a, 0x5a3a24];
+const SKINS = [0xc08a5e, 0xa8734c, 0xd1a07a, 0x9a6a46];
+const HATS = [0xece4d2, 0xe2d2b0, 0x3a2a1a, 0x7a1f1a, 0xf2ece0];
+async function loadPeople() {
+  try {
+    const loader = new GLTFLoader();
+    const piv = await (await fetch('figures/people.json', { cache: 'no-cache' })).json();
+    await Promise.all(['man_turban', 'man_kalpak', 'woman'].map(async n => {
+      const j = await (await fetch('figures/' + n + '.json')).json();
+      const g = await loader.parseAsync(Uint8Array.from(atob(j.glb), ch => ch.charCodeAt(0)).buffer, ''), parts = {};
+      g.scene.traverse(o => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); parts[o.name || o.parent.name] = o.geometry; } });
+      PEOPLE[n] = { parts, pivots: piv[n] };
+    }));
+  } catch (e) { console.warn('bazaar people not loaded', e); }
+}
+const clothMat = (c, rough = 0.85) => new THREE.MeshStandardMaterial({ color: c, roughness: rough, vertexColors: true });
+const pickOf = (a, i) => a[Math.abs(Math.floor(i)) % a.length];
+function person(type, seed) {
+  const P = PEOPLE[type]; if (!P) return null;
+  const robe = clothMat(pickOf(ROBES, seed * 3 + 1)), skin = clothMat(pickOf(SKINS, seed), 0.6);
+  const mats = { robe, sash: clothMat(pickOf([0xc9a24a, 0xb3261e, 0x1f6f8b, 0xe9d9a6], seed + 2)), boots: clothMat(0x3a2418, 0.7),
+    head: skin, beard: clothMat(pickOf([0x2a1d14, 0x4a3a2a, 0x8a8478], seed + 1), 1), hat: clothMat(pickOf(HATS, seed * 7 + 3)),
+    arm_l: robe, arm_r: robe, hand_l: skin, hand_r: skin };
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const head = new THREE.Group(); head.position.set(...(P.pivots.head || [0, 1.47, 0])); body.add(head);
+  const arms = {};
+  for (const s of ['l', 'r']) { const a = new THREE.Group(); a.position.set(...P.pivots['arm_' + s]); body.add(a); arms[s] = a; }
+  for (const [name, geo] of Object.entries(P.parts)) {
+    const host = ['head', 'beard', 'hat'].includes(name) ? head : name.endsWith('_l') ? arms.l : name.endsWith('_r') ? arms.r : body;
+    const m = new THREE.Mesh(geo, mats[name] || robe); m.castShadow = true; m.receiveShadow = true; host.add(m);
+  }
+  g.userData = { body, head, arms, seed, mode: 'idle', next: 0 };
+  return g;
+}
+async function addBazaarPeople() {
+  await loadPeople(); if (!PEOPLE.man_turban) return;
+  const stalls = bazaar.children.filter(o => o.isGroup && o.children.length > 20);
+  stalls.forEach((st, i) => {                                  // a merchant behind each table, a shopper in front of some
+    const m = person(i % 2 ? 'man_kalpak' : 'man_turban', i * 5 + 1); m.position.set(0, 0, -0.45); m.rotation.y = -Math.PI / 2; m.scale.setScalar(1.02);
+    m.userData.role = 'merchant'; st.add(m); folk.push(m);
+    if (i % 2 === 0) {
+      const c = person(i % 4 ? 'man_turban' : 'woman', i * 3 + 4); c.position.set(0.5 - (i % 3) * 0.4, 0, 1.75); c.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.4;
+      c.userData.role = 'shopper'; st.add(c); folk.push(c);
+    }
+  });
+  for (let i = 0; i < 6; i++) {                               // passers-by along the market row behind the board
+    const w = person(['woman', 'man_turban', 'man_kalpak'][i % 3], i * 11 + 7);
+    w.userData.role = 'walker'; w.userData.path = { mid: -Math.PI / 2 + (i - 2.5) * 0.18, amp: 0.55 + (i % 3) * 0.12, speed: 0.06 + (i % 4) * 0.012, ph: i * 1.7, r: 7.6 + (i % 2) * 0.7 };
+    scene.add(w); folk.push(w);
+  }
+}
+function animatePeople(now, dt) {
+  const t = now / 1000;
+  for (const f of folk) {
+    const u = f.userData, s = u.seed;
+    if (u.role === 'walker') {                                  // stroll back and forth along an arc of the market
+      const P = u.path, a = P.mid + P.amp * Math.sin(t * P.speed + P.ph), da = P.amp * P.speed * Math.cos(t * P.speed + P.ph);
+      const x = Math.cos(a) * P.r * 1.12, z = Math.sin(a) * P.r - 0.6;
+      const pace = Math.min(1, Math.abs(da) * 14);
+      f.position.set(x, 0.03 * pace * Math.abs(Math.sin(t * 7 + s)), z);
+      const tx = -Math.sin(a) * Math.sign(da || 1), tz = Math.cos(a) * Math.sign(da || 1);
+      f.rotation.y += angDiff(f.rotation.y, Math.atan2(-tz, tx)) * 0.08;
+      u.arms.l.rotation.z = 0.3 * pace * Math.sin(t * 7 + s); u.arms.r.rotation.z = -0.3 * pace * Math.sin(t * 7 + s);
+      u.body.rotation.x = 0.03 * pace * Math.sin(t * 7 + s);
+      u.head.rotation.y = 0.3 * Math.sin(t * 0.4 + s);
+      continue;
+    }
+    // merchants and shoppers: breathe, look around, and every few seconds raise a hand to show or call out
+    if (t > u.next) { u.mode = Math.random() < (u.role === 'merchant' ? 0.55 : 0.35) ? 'gesture' : 'idle'; u.next = t + 2 + Math.random() * 3.5; u.look = (Math.random() - 0.5) * 1.1; u.t0 = t; }
+    const g = u.mode === 'gesture' ? Math.sin(Math.min(1, (t - u.t0) / 0.6) * Math.PI / 2) * (1 - Math.max(0, (t - u.t0 - 1.6) / 0.6)) : 0;
+    const gg = Math.max(0, g);
+    u.arms.r.rotation.z = gg * (u.role === 'merchant' ? 1.25 : 0.8) + 0.05 * Math.sin(t * 1.3 + s);
+    u.arms.r.rotation.x = -gg * 0.35 * Math.sin(t * 5 + s) - gg * 0.2;
+    u.arms.l.rotation.z = gg * 0.35 + 0.04 * Math.sin(t * 1.1 + s + 1);
+    u.head.rotation.y += ((u.look || 0) - u.head.rotation.y) * 0.04;
+    u.head.rotation.z = 0.04 * Math.sin(t * 0.9 + s) + gg * 0.08;
+    u.body.scale.y = 1 + 0.01 * Math.sin(t * 1.6 + s);
+    u.body.rotation.z = 0.02 * Math.sin(t * 0.7 + s);
+  }
+}
+
 
 
 const frameShape = new THREE.Shape(wavyFrame(4.75, 0.12));
@@ -1037,10 +1123,17 @@ function sculpted(T, m, mvOverride) {
   const [root, up] = rigged(m, T.kind === 'camel' ? 'pace' : T.kind === 'horse' ? 'trot' : 'sail');
   for (const [name, geo] of Object.entries(F.parts)) {
     const mat = geo.attributes.color ? mv : m;
+    if (name.startsWith('leg_') && name.endsWith('_lo')) continue;
     if (name.startsWith('leg_')) {
       const hip = F.pivots[name], pivot = new THREE.Group(); pivot.position.set(...hip); root.add(pivot);
       mesh(pivot, geo, mat);
-      root.userData.legs.push({ pivot, front: name.includes('front'), left: name.endsWith('_l') });
+      let lower = null;
+      const lo = F.parts[name + '_lo'], kn = F.pivots[name + '_lo'];
+      if (lo && kn) {
+        lower = new THREE.Group(); lower.position.set(kn[0] - hip[0], kn[1] - hip[1], kn[2] - hip[2]); pivot.add(lower);
+        mesh(lower, lo, lo.attributes.color ? mv : m);
+      }
+      root.userData.legs.push({ pivot, lower, front: name.includes('front'), left: name.endsWith('_l') });
     } else if (name === 'head' || name === 'tail') {        // neck+head and tail swing on their own pivots
       const pivot = new THREE.Group(); pivot.position.set(...F.pivots[name]); up.add(pivot);
       mesh(pivot, geo, mat); root.userData[name] = pivot;
@@ -1273,24 +1366,20 @@ function footfall(o) {
 function startSound(o) {
   const u = o.userData, pan = o.position.x / 4;
   if (u.kind === 'ship') { sfx('water', pan); sfx('creak', pan); sfx('flap', pan); }
-  else if (u.kind === 'horse') sfx('hsnort', pan, 0.8);
-  else { if (Math.random() < 0.5) sfx('bell', pan); if (Math.random() < 0.3) sfx('groan', pan, 0.8); }
+  else if (u.kind !== 'horse' && Math.random() < 0.5) sfx('bell', pan);
 }
 // a voice when a figure is picked up
 function pickSound(o) {
   const u = o.userData, pan = o.position.x / 4, r = Math.random();
   if (u.kind === 'ship') sfx('flap', pan, 0.8);
-  else if (u.kind === 'horse') sfx('hsnort', pan);
-  else if (r < 0.55) sfx('snort', pan); else if (r < 0.8) sfx('groan', pan, 0.7);
 }
-// now and then one of the market camels groans in the distance
-setInterval(() => { if (!marketCamels.length || document.hidden) return; const c = marketCamels[Math.floor(Math.random() * marketCamels.length)]; if (Math.random() < 0.5) sfx(Math.random() < 0.6 ? 'groan' : 'snort', c.position.x / 12, 0.22); }, 9000);
+
 
 // ---------- Walking ----------
 // A move is a little journey: turn towards the target city, walk there along the line, turn back to face the opponent.
 const angDiff = (a, b) => { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 const yawTo = (a, b) => Math.atan2(-(b.z - a.z), b.x - a.x);
-function walkPath(o, points, endYaw, speed = 1.1) {
+function walkPath(o, points, endYaw, speed = 0.75) {
   const q = []; let prev = o.position.clone().setY(TOP + 0.04);
   // moves run along one straight line, so walk to the last city in one stride without stopping on the way
   const to = points[points.length - 1];
@@ -1319,13 +1408,19 @@ function animateRig(o, dt) {
   const u = o.userData; if (!u.up) return;
   u.amp += ((u.walking || 0) - u.amp) * Math.min(1, dt * 7);
   if (u.amp < 0.002) { u.amp = 0; }
-  u.phase += dt * (u.gait === 'trot' ? 11 : 8.5) * (u.amp > 0 ? 1 : 0);
+  u.phase += dt * (u.gait === 'trot' ? 12.5 : 11) * (u.amp > 0 ? 1 : 0);
   const step = Math.floor(u.phase / Math.PI);                     // a foot (or a wave) touches down
   if (step !== u.lastStep) { if (u.amp > 0.45 && u.lastStep !== undefined) { u.stepN = (u.stepN || 0) + 1; footfall(o); } u.lastStep = step; }
   const a = u.amp, ph = u.phase;
   for (const L of u.legs) {
     const off = u.gait === 'pace' ? (L.left ? 0 : Math.PI) : (L.front === L.left ? 0 : Math.PI);
-    L.pivot.rotation.z = a * (L.front ? 0.42 : 0.36) * Math.sin(ph + off);
+    const c = (((ph + off) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / (2 * Math.PI);   // 0..1 through one stride
+    const A = L.front ? 0.3 : 0.26;
+    let hip, knee;
+    if (c < 0.6) { hip = A * (1 - 2 * c / 0.6); knee = 0; }                                       // stance: planted, sweeping back
+    else { const s = (c - 0.6) / 0.4, e = s * s * (3 - 2 * s); hip = A * (-1 + 2 * e); knee = Math.sin(Math.PI * s); }   // swing
+    L.pivot.rotation.z = a * hip;
+    if (L.lower) L.lower.rotation.z = a * knee * (L.front ? -0.85 : 0.75);
   }
   const now = performance.now() / 1000, sd = u.seed || 0, idle = 1 - a;
   if (u.head) {
@@ -1344,9 +1439,9 @@ function animateRig(o, dt) {
     u.up.rotation.x = a * 0.08 * Math.sin(ph * 0.55); u.up.rotation.z = a * 0.05 * Math.sin(ph * 0.4 + 1);
     u.up.position.y = a * 0.025 * (1 + Math.sin(ph * 0.55));
   } else {
-    u.up.position.y = a * 0.022 * Math.abs(Math.sin(ph));
-    u.up.rotation.x = u.gait === 'pace' ? a * 0.045 * Math.sin(ph) : 0;
-    u.up.rotation.z = a * 0.03 * Math.sin(ph * 2);
+    u.up.position.y = a * 0.012 * Math.cos(ph * 2);
+    u.up.rotation.x = u.gait === 'pace' ? a * 0.04 * Math.sin(ph) : 0;                           // a pacing camel rolls side to side
+    u.up.rotation.z = a * 0.015 * Math.sin(ph * 2);
   }
 }
 function tweenTo(o, to) {
@@ -2062,6 +2157,7 @@ function startBotGame() {
   for (const p of pieces) { const o = makePiece(p.s, p.t); o.userData.pid = p.id; scene.add(o); objs[p.id] = o; }
   placeAll(false);
   addMarketCamels();
+  addBazaarPeople();
   // a narrow (portrait) screen needs the camera further back to fit the board
   const aspect = view.clientWidth / view.clientHeight;
   for (const v of Object.values(VIEWS)) { const f = Math.max(1, 1.15 / aspect); v[0] *= f; v[1] *= f; v[2] *= f; }
