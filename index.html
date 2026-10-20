@@ -526,7 +526,7 @@ function sandTexture() {
     const ridge = v => 1 - Math.abs(Math.sin(v));
     const h = 2.2 * Math.pow(ridge(x * 0.07 + Math.sin(z * 0.045) * 2.2), 2) + 1.2 * Math.pow(ridge(z * 0.09 + x * 0.03 + 1.7), 2)
       + 0.35 * Math.sin(x * 0.31 + z * 0.17) + 0.25 * Math.sin(z * 0.37 - x * 0.11);
-    const f = THREE.MathUtils.smoothstep(r, 10, 22);
+    const f = THREE.MathUtils.smoothstep(r, 24, 38);   // flat ground for the bazaar, the road and the gate
     p.setY(i, f * h * (1 + r * 0.02) - 0.03);
   }
   geo.computeVertexNormals();
@@ -760,6 +760,7 @@ function animateWorld(now, dt) {
   lanterns.forEach((l, i) => { l.rotation.z = Math.sin(t * 0.9 + i) * 0.06; l.children[1].material.emissiveIntensity = 2 + Math.sin(t * 7 + i * 3) * 0.25; });
   for (const c of marketCamels) animateRig(c, dt);
   animatePeople(now, dt);
+  animateLife(now, dt);
 }
 // ---------- Bazaar people ----------
 // Merchants behind every stall show their goods and call out with a raised hand; shoppers stand haggling
@@ -888,6 +889,170 @@ function buildDiscs() {
     m.receiveShadow = true; m.castShadow = true;
     m.userData.cell = k(r, c);
     scene.add(m); discs.push(m);
+  }
+}
+
+// ---------- Bazaar life: life-size camels and people (tools/fauna.py) ----------
+// A drover leads a loaded caravan along the road between the stalls and the gate; camels rest by the stalls,
+// chewing; merchants call out and hold out their goods; shoppers bargain; passers-by carry sacks and jars.
+const FAUNA = {}, life = [];
+async function loadFauna() {
+  try {
+    const loader = new GLTFLoader();
+    const piv = await (await fetch('figures/fauna.json', { cache: 'no-cache' })).json();
+    await Promise.all(Object.keys(piv).map(async n => {
+      const j = await (await fetch('figures/' + n + '.json')).json();
+      const g = await loader.parseAsync(Uint8Array.from(atob(j.glb), ch => ch.charCodeAt(0)).buffer, ''), parts = {};
+      g.scene.traverse(o => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); parts[o.name || o.parent.name] = o.geometry; } });
+      FAUNA[n] = { parts, pivots: piv[n] };
+    }));
+  } catch (e) { console.warn('bazaar life not loaded', e); }
+}
+const furMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.95, sheen: 0.8, sheenColor: 0xffe2b8, sheenRoughness: 0.75 });
+const tint = (c, r = 0.88) => new THREE.MeshStandardMaterial({ color: c, roughness: r, vertexColors: true });
+const ROBE_C = [0x2c3e5c, 0x7d2a22, 0x9a7a3a, 0x5a5a32, 0x6a5440, 0x3e2e44, 0x7a4a2a, 0x2f4a48];
+const SKIN_C = [0xb57a52, 0x9c6844, 0xc89470, 0x8a5a3a];
+// build a rig: every part on its pivot; lower legs hang from their upper leg's knee
+function rigFrom(name, matFor) {
+  const F = FAUNA[name]; if (!F) return null;
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const groups = {}, legs = [];
+  const groupAt = p => { const key = p.join(','); if (!groups[key]) { const q = new THREE.Group(); q.position.set(...p); body.add(q); groups[key] = q; } return groups[key]; };
+  for (const [part, geo] of Object.entries(F.parts)) {
+    if (part.endsWith('_lo')) continue;
+    const pv = F.pivots[part], host = pv ? groupAt(pv) : body;
+    const m = new THREE.Mesh(geo, matFor(part)); m.castShadow = true; m.receiveShadow = true; host.add(m);
+    if (part.startsWith('leg_')) {
+      const lo = F.parts[part + '_lo'], kn = F.pivots[part + '_lo'];
+      const lower = new THREE.Group(); lower.position.set(kn[0] - pv[0], kn[1] - pv[1], kn[2] - pv[2]); host.add(lower);
+      const lm = new THREE.Mesh(lo, matFor(part + '_lo')); lm.castShadow = true; lower.add(lm);
+      legs.push({ pivot: host, lower, front: part.includes('front'), left: part.includes('_l') });
+    }
+  }
+  const at = n => F.pivots[n] ? groups[F.pivots[n].join(',')] : null;
+  g.userData = { body, legs, head: at('head'), tail: at('tail'), armL: at('arm_l'), armR: at('arm_r'), ph: Math.random() * 6, seed: Math.random() * 50 };
+  return g;
+}
+const bagMat = new THREE.MeshStandardMaterial({ color: 0xc0504a, roughness: 0.95, vertexColors: true });   // woven khurjin over the tan fur shade
+function camelRig(kind) { return rigFrom(kind, part => part === 'bags' ? bagMat : furMat); }
+function folkRig(kind, i) {
+  const robe = tint(ROBE_C[i % ROBE_C.length]), skin = tint(SKIN_C[i % SKIN_C.length], 0.6);
+  const M = { robe, sash: tint([0xc9a24a, 0x9b2a20, 0x1f6f8b, 0xd8c79a][i % 4]), head: skin, hand_l: skin, hand_r: skin, arm_l: robe, arm_r: robe,
+    beard: tint([0x2a1d14, 0x3e2e22, 0x8a8478][i % 3], 1), hat: tint(kindHat(kindOf(i)), 0.9), leg_l: tint(0x3a352e), leg_r: tint(0x3a352e),
+    leg_l_lo: tint(0x2a1d14, 0.7), leg_r_lo: tint(0x2a1d14, 0.7), shoe_l: tint(0x2a1d14, 0.7), shoe_r: tint(0x2a1d14, 0.7) };
+  const g = rigFrom('folk_' + kind, part => M[part] || robe);
+  if (g) g.userData.kind = kind;
+  return g;
+}
+const kindOf = i => ['turban', 'kalpak', 'tubeteika', 'woman'][i % 4];
+const kindHat = k => ({ turban: 0xece4d2, kalpak: 0xeee6d6, tubeteika: 0x2a2a3a, woman: 0xf4efe4 }[k]);
+function prop(name, mat) { const F = FAUNA.props; if (!F) return null; const m = new THREE.Mesh(F.parts[name], mat); m.castShadow = true; return m; }
+
+// a walk cycle shared by camels (pacing) and people: stance with the foot planted, swing with the knee folding
+function stride(u, ph, amount, human) {
+  for (const L of u.legs) {
+    const off = human ? (L.left ? 0 : Math.PI) : (L.left ? 0 : Math.PI);
+    const c = (((ph + off) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / (2 * Math.PI), A = human ? 0.36 : (L.front ? 0.3 : 0.26);
+    let hip, knee;
+    if (c < 0.6) { hip = A * (1 - 2 * c / 0.6); knee = human ? -0.06 : 0; }
+    else { const s = (c - 0.6) / 0.4, e = s * s * (3 - 2 * s); hip = A * (-1 + 2 * e); knee = Math.sin(Math.PI * s) * (human ? -1.05 : (L.front ? -0.85 : 0.75)); }
+    L.pivot.rotation.z = amount * hip; L.lower.rotation.z = amount * knee;
+  }
+}
+const ROAD_Z = -14.6;
+async function addBazaarLife() {
+  await loadFauna(); if (!FAUNA.camel_stand) return;
+  // resting camels by the stalls
+  for (const [x, z, yaw] of [[-5.6, -7.6, 0.4], [6.0, -7.8, 2.7], [-9.8, 3.0, 1.2]]) {
+    const c = camelRig('camel_rest'); c.position.set(x, 0, z); c.rotation.y = yaw; c.userData.role = 'rest'; scene.add(c); life.push(c);
+  }
+  // the caravan on the road: a drover and three loaded camels
+  const drover = folkRig('turban', 1); drover.userData.role = 'drover'; drover.userData.s = 0; scene.add(drover); life.push(drover);
+  for (let i = 0; i < 3; i++) { const c = camelRig('camel_stand'); c.userData.role = 'caravan'; c.userData.i = i; scene.add(c); life.push(c); }
+  const rope = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0x4a3622 }));
+  scene.add(rope); drover.userData.rope = rope;
+  // merchants, one behind each stall, and shoppers in front of some
+  const stalls = bazaar.children.filter(o => o.isGroup && o.children.length > 20);
+  stalls.forEach((st, i) => {
+    const m = folkRig(['turban', 'kalpak', 'tubeteika'][i % 3], i + 3); m.position.set(0, 0, -0.5); m.rotation.y = -Math.PI / 2;
+    m.userData.role = 'merchant'; st.add(m); life.push(m);
+    if (i % 2 === 0) {
+      const c = folkRig(i % 4 ? 'kalpak' : 'woman', i + 9); c.position.set(0.4 - (i % 3) * 0.5, 0, 1.8); c.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+      c.userData.role = 'shopper'; st.add(c); life.push(c);
+    }
+  });
+  // passers-by along the market row behind the board
+  const loads = ['sack', null, 'jar', null, 'sack'];
+  for (let i = 0; i < 5; i++) {
+    const kind = loads[i] === 'jar' ? 'woman' : ['kalpak', 'turban', 'tubeteika'][i % 3];
+    const w = folkRig(kind, i + 14); w.userData.role = 'walker';
+    w.userData.path = { mid: -Math.PI / 2 + (i - 2) * 0.22, amp: 0.5 + (i % 3) * 0.13, speed: 0.05 + (i % 4) * 0.01, ph: i * 1.9, r: 7.7 + (i % 2) * 0.6 };
+    if (loads[i] && w.userData.armR) {
+      const p = prop(loads[i], tint(loads[i] === 'jar' ? 0xb5643a : 0xa88a5c, 1));
+      if (loads[i] === 'jar') { p.position.set(0, 1.79, 0); w.userData.body.add(p); w.userData.carry = 'head'; }
+      else { p.position.set(-0.02, 1.58, -0.17); p.rotation.set(0, 0.3, 0.15); w.userData.body.add(p); w.userData.carry = 'shoulder'; }
+    }
+    scene.add(w); life.push(w);
+  }
+}
+function animateLife(now, dt) {
+  const t = now / 1000;
+  let drover = null;
+  for (const o of life) {
+    const u = o.userData, sd = u.seed;
+    if (u.head && u.role !== 'caravan' && u.role !== 'drover') {           // look around, now and then
+      if (!u.look || t > u.look.until) u.look = { yaw: (Math.random() - 0.5) * 0.9, until: t + 2 + Math.random() * 5 };
+      u.head.rotation.y += (u.look.yaw - u.head.rotation.y) * 0.03;
+    }
+    if (u.tail) u.tail.rotation.x = 0.12 * Math.sin(t * 1.3 + sd) + 0.4 * Math.max(0, Math.sin(t * 0.6 + sd)) ** 14 * Math.sin(t * 13);
+    if (u.role === 'rest') { u.head.rotation.z = 0.04 * Math.sin(t * 0.8 + sd) + 0.015 * Math.sin(t * 9 + sd); continue; }   // chewing
+    if (u.role === 'drover') {
+      drover = o; u.s = (u.s + dt * 0.85) % 60;
+      const x = -30 + u.s; o.position.set(x, 0, ROAD_Z); o.rotation.y = 0;
+      u.ph += dt * 5.0; stride(u, u.ph, 1, true);
+      u.armL.rotation.z = -0.3 * Math.sin(u.ph); u.armR.rotation.z = -0.55; u.armR.rotation.x = -0.15;   // holding the lead rope behind him
+      u.body.position.y = 0.025 * Math.abs(Math.cos(u.ph));
+      continue;
+    }
+    if (u.role === 'caravan') {
+      const d = life.find(x => x.userData.role === 'drover');
+      const x = d.position.x - 2.4 - u.i * 2.7;
+      o.position.set(x, 0, ROAD_Z + Math.sin(x * 0.15 + u.i) * 0.15); o.rotation.y = 0;
+      u.ph += dt * 3.6; stride(u, u.ph, 1, false);
+      u.body.rotation.x = 0.03 * Math.sin(u.ph); u.body.position.y = 0.02 * Math.cos(u.ph * 2);
+      if (u.head) u.head.rotation.z = 0.06 * Math.sin(u.ph * 2);
+      o.visible = x > -26;
+      continue;
+    }
+    if (u.role === 'walker') {
+      const P = u.path, a = P.mid + P.amp * Math.sin(t * P.speed + P.ph), da = P.amp * P.speed * Math.cos(t * P.speed + P.ph);
+      const pace = Math.min(1, Math.abs(da) * 13);
+      o.position.set(Math.cos(a) * P.r * 1.12, 0, Math.sin(a) * P.r - 0.6);
+      const dir = Math.sign(da || 1), tx = -Math.sin(a) * dir, tz = Math.cos(a) * dir;
+      o.rotation.y += angDiff(o.rotation.y, Math.atan2(-tz, tx)) * 0.08;
+      u.ph += dt * 5.2 * pace;
+      if (u.legs.length) stride(u, u.ph, pace, true);
+      u.body.position.y = 0.025 * pace * Math.abs(Math.cos(u.ph));
+      u.body.rotation.x = 0.025 * pace * Math.sin(u.ph);
+      if (u.carry === 'head') { u.armR.rotation.z = 2.7; u.armR.rotation.x = -0.25; u.armL.rotation.z = -0.25 * pace * Math.sin(u.ph); }
+      else if (u.carry === 'shoulder') { u.armR.rotation.z = 2.2; u.armR.rotation.x = 0.3; u.armL.rotation.z = -0.3 * pace * Math.sin(u.ph); }
+      else { u.armL.rotation.z = -0.3 * pace * Math.sin(u.ph); u.armR.rotation.z = 0.3 * pace * Math.sin(u.ph); }
+      continue;
+    }
+    // merchants and shoppers
+    if (!u.next || t > u.next) { u.mode = Math.random() < (u.role === 'merchant' ? 0.55 : 0.4) ? (Math.random() < 0.5 ? 'call' : 'offer') : 'idle'; u.next = t + 2.2 + Math.random() * 3.5; u.t0 = t; }
+    const k = u.mode === 'idle' ? 0 : Math.max(0, Math.sin(Math.min(1, (t - u.t0) / 0.6) * Math.PI / 2) * (1 - Math.max(0, (t - u.t0 - 1.7) / 0.6)));
+    if (u.mode === 'call') { u.armR.rotation.z = k * 2.3; u.armR.rotation.x = -k * (0.2 + 0.25 * Math.sin(t * 6 + sd)); u.armL.rotation.z = 0.05; }
+    else { u.armR.rotation.z = k * 1.1; u.armL.rotation.z = k * 1.0; u.armR.rotation.x = -0.1 * k; u.armL.rotation.x = 0.1 * k; }
+    if (u.head) u.head.rotation.z = 0.05 * Math.sin(t * 1.1 + sd) + (u.mode === 'call' ? 0.12 * k : 0);
+    u.body.scale.y = 1 + 0.008 * Math.sin(t * 1.6 + sd);
+  }
+  if (drover) {                                                   // the lead rope from the drover's hand to the first camel's halter
+    const a = new THREE.Vector3(-0.15, 1.0, -0.22).applyMatrix4(drover.matrixWorld);
+    const c1 = life.find(x => x.userData.role === 'caravan' && x.userData.i === 0);
+    const b = new THREE.Vector3(1.85, 2.05, 0).applyMatrix4(c1.matrixWorld);
+    const p = drover.userData.rope.geometry.attributes.position; p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z); p.needsUpdate = true;
+    drover.userData.rope.geometry.computeBoundingSphere();
   }
 }
 
@@ -2156,7 +2321,7 @@ function startBotGame() {
   if (!load()) pieces = startPieces();
   for (const p of pieces) { const o = makePiece(p.s, p.t); o.userData.pid = p.id; scene.add(o); objs[p.id] = o; }
   placeAll(false);
-  // background camels and people are switched off until realistic models replace the sculpted ones
+  addBazaarLife();
   // a narrow (portrait) screen needs the camera further back to fit the board
   const aspect = view.clientWidth / view.clientHeight;
   for (const v of Object.values(VIEWS)) { const f = Math.max(1, 1.15 / aspect); v[0] *= f; v[1] *= f; v[2] *= f; }
