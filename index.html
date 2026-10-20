@@ -71,6 +71,11 @@
   .gate .link { justify-self: center; border: 0; color: #e8d6b8; text-decoration: underline; background: none; }
   .skip.mute { right: auto; left: 16px; }
   [hidden] { display: none !important; }
+  .lang { position: absolute; right: 14px; top: 16px; display: flex; gap: 2px; }
+  .lang button { padding: 3px 7px; font-size: 12px; border-radius: 6px; }
+  .lang button.on, #bot-levels button.on, .seg button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .seg { display: flex; gap: 4px; } .seg button { flex: 1; }
+  .small { font-size: 13px; color: var(--muted); align-self: center; }
   .vbtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; opacity: 0; transition: opacity .8s; }
   .vbtns.on { opacity: 1; }
   .vbtns:not(.on) button { pointer-events: none !important; }
@@ -126,47 +131,49 @@
   <button class="toggle" id="toggle">▾</button>
   <h1>Ұлы Керуен</h1>
   <div class="sub">Ұлы Жібек жолы · 49 қала</div>
+  <div class="lang"><button data-lang="kk">ҚАЗ</button><button data-lang="ru">РУС</button></div>
   <div class="status" id="status"></div>
   <div class="more">
     <div class="row">
-      <button class="main" id="b-new">Новая партия</button>
-      <button id="b-undo" disabled>Отменить ход</button>
+      <button class="main" id="b-new" data-i18n="newGame"></button>
+      <button id="b-undo" disabled data-i18n="undo"></button>
     </div>
-    <div class="row"><button id="b-intro">▶ Заставка</button><button id="b-sound">🔊 Звуки</button></div>
-    <h2>Вид</h2>
+    <div class="row"><button id="b-intro" data-i18n="intro"></button><button id="b-sound"></button></div>
+    <h2 data-i18n="bot"></h2>
+    <div class="row three" id="bot-levels">
+      <button data-level="1" data-i18n="easy"></button><button data-level="2" class="on" data-i18n="medium"></button><button data-level="3" data-i18n="hard"></button>
+    </div>
+    <div class="row"><span class="small" data-i18n="playAs"></span>
+      <div class="seg" id="bot-side"><button data-side="w" class="on">Ақ</button><button data-side="b">Қоңыр</button></div></div>
+    <div class="row"><button id="bot-start" class="main" data-i18n="botStart"></button><button id="bot-stop" hidden data-i18n="botStop"></button></div>
+    <p class="note" id="bot-status"></p>
+    <h2 data-i18n="view"></h2>
     <div class="row three">
       <button id="v-b">Қоңыр</button>
-      <button id="v-top">Сверху</button>
+      <button id="v-top" data-i18n="top"></button>
       <button id="v-w">Ақ</button>
     </div>
     <div class="counts" id="counts"></div>
-    <h2>Игра по сети</h2>
+    <h2 data-i18n="online"></h2>
     <div id="online" hidden>
-      <div class="row"><input id="n-code" value="1" maxlength="20" aria-label="Номер стола"><button id="n-join" class="main">Сесть за стол</button></div>
+      <div class="row"><input id="n-code" value="1" maxlength="20" data-i18n-ph="tableNo"><button id="n-join" class="main" data-i18n="sit"></button></div>
       <div id="n-seats" class="seats"></div>
       <p class="note" id="n-status"></p>
-      <div class="row"><button id="n-leave" hidden>Выйти из-за стола</button></div>
+      <div class="row"><button id="n-leave" hidden data-i18n="leave"></button></div>
     </div>
     <div id="p2p" hidden>
-      <div class="row"><button id="p-host" class="main">Создать стол</button><button id="p-join">Подключиться</button></div>
-      <div class="row"><input id="p-code" maxlength="4" inputmode="numeric" placeholder="Номер стола" aria-label="Номер стола"></div>
+      <div class="row"><button id="p-host" class="main" data-i18n="createTable"></button><button id="p-join" data-i18n="join"></button></div>
+      <div class="row"><input id="p-code" maxlength="4" inputmode="numeric" data-i18n-ph="tableNo"></div>
       <p class="note" id="p-status"></p>
       <p class="note" id="p-turn"></p>
-      <div class="row"><button id="p-leave" hidden>Выйти из-за стола</button></div>
+      <div class="row"><button id="p-leave" hidden data-i18n="leave"></button></div>
     </div>
-    <p class="note" id="n-off">Игра по сети работает на сайте игры и в версии на claude.ai.</p>
-    <h2>Ходы</h2>
+    <p class="note" id="n-off" data-i18n="offline"></p>
+    <h2 data-i18n="moves"></h2>
     <ol id="log"></ol>
-    <h2>Правила</h2>
-    <ul class="rules">
-      <li><b>Цель</b> — собрать караван: все 7 своих фигур в одну линию — по вертикали, по длинной диагонали или поперёк доски (от среднего ряда и дальше, не на своих трёх рядах), не давая сопернику собрать свой.</li>
-      <li><b>Керуенбасы</b> ходит как ферзь — по линиям на любое расстояние.</li>
-      <li><b>Қарауыл</b> — 3 дальних хода за партию, <b>кеме</b> — 1; в остальное время по одному шагу.</li>
-      <li><b>Аруана, бактриан, дромедар, нар</b> — по одному шагу вдоль линии.</li>
-      <li>Ходить можно только на свободный город, через фигуры не прыгают.</li>
-    </ul>
-    <p class="note">Нажмите фигуру — подсветятся города, куда она может пойти. Доску можно вращать и приближать.
-      Фигуры не бьют друг друга — только перекрывают дорогу. Кто ходит первым, автор пока не сказал — здесь начинают белые.</p>
+    <h2 data-i18n="rules"></h2>
+    <ul class="rules" id="rules"></ul>
+    <p class="note" data-i18n="note"></p>
   </div>
 </aside>
 
@@ -210,6 +217,88 @@ const TYPES = [
   { name: 'Желкенді кеме', kind: 'ship', file: 'keme' },
 ];
 const SIDE = { b: 'Қоңыр', w: 'Ақ' };
+// ---------- Language: Қазақша (default) / Русский ----------
+const I18N = {
+  kk: {
+    newGame: 'Жаңа ойын', sure: 'Нақты ма? Тағы басыңыз', undo: 'Жүрісті қайтару', intro: '▶ Кіріспе', sound: '🔊 Дыбыс', noSound: '🔇 Дыбыссыз',
+    view: 'Көрініс', top: 'Жоғарыдан', online: 'Желіде ойнау', bot: 'Компьютермен ойнау', moves: 'Жүрістер', rules: 'Ереже',
+    tableNo: 'Үстел нөмірі', sit: 'Үстелге отыру', leave: 'Үстелден шығу', createTable: 'Үстел ашу', join: 'Қосылу',
+    offline: 'Желіде ойнау ойын сайтында және claude.ai нұсқасында жұмыс істейді.',
+    rulesHtml: `<li><b>Мақсат</b> — керуен жинау: өзіңнің 7 фигураңды бір сызыққа тізу — тігінен, ұзын диагональ бойымен немесе көлденеңінен (ортаңғы қатардан бастап қарсылас жағына қарай, өз үш қатарыңда емес) және қарсыласқа керуенін жинауға жол бермеу.</li>
+      <li><b>Керуенбасы</b> ферзь сияқты жүреді — сызықтар бойымен кез келген қашықтыққа.</li>
+      <li><b>Қарауылдың</b> ойын бойы 3 алыс жүрісі бар, <b>кеменің</b> — 1; қалған уақытта бір қадамнан жүреді.</li>
+      <li><b>Аруана, бактриан, дромедар, нар</b> — сызық бойымен бір қадамнан.</li>
+      <li>Тек бос қалаға жүруге болады, фигуралар бір-бірін ұрмайды және үстінен секірмейді.</li>`,
+    note: 'Фигураны басыңыз — ол бара алатын қалалар жарықталады. Тақтаны айналдыруға және жақындатуға болады. Алдымен Ақтар жүреді.',
+    turnN: (n, s) => `${n}-жүріс · кезек: ${s}`, won: s => `Жеңіс: ${s}! Керуен жиналды.`,
+    longLeft: (q, k) => `алыс жүріс: қарауыл ${q}/3, кеме ${k}/1`, longMove: ' (алыс жүріс)',
+    caravan: (s, l) => `★ ${s} керуенін ${l} жинады!`, row: 'көлденеңінен', col: 'тігінен', diag: 'диагональ бойымен',
+    cantGo: n => `${n} ол жаққа жүрмейді`, busy: 'Қала бос емес', nowMoves: s => `Қазір ${s} жүреді`,
+    sitFirst: 'Жүру үшін үстелге отырыңыз', foe: 'Бұл қарсыластың фигуралары', foeTurn: 'Қазір қарсыластың кезегі', botPiece: 'Бұл компьютердің фигуралары',
+    queen: 'ферзь сияқты жүреді', longN: n => `алыс жүріс: ${n}`, step: 'бір қадамнан жүреді',
+    p2pHint: 'Бір ойыншы үстел ашады, екіншісі оның нөмірін енгізеді.', p2pOpening: 'Үстел ашылуда…',
+    p2pOpened: c => `${c} үстел ашылды. Осы нөмірді қарсыласыңызға айтыңыз — сіз Ақтармен ойнайсыз.`,
+    p2pJoined: s => `Қарсылас үстелде. Сіз ${s} жақта ойнайсыз.`, p2pLeft: 'Қарсылас шығып кетті. Ол сол нөмірмен қайта қосыла алады.',
+    p2pLost: 'Қарсыласпен байланыс үзілді.', p2pIdTaken: 'Бұл нөмір бос емес — «Үстел ашу» батырмасын қайта басыңыз.',
+    p2pFail: 'Үстел ашу мүмкін болмады. Интернетті тексеріп, қайталап көріңіз.', p2pNeed4: '4 цифрлы үстел нөмірін енгізіңіз.',
+    p2pJoining: c => `${c} үстеліне қосылудамыз…`, p2pNoTable: c => `${c} үстел табылмады. Нөмірді тексеріңіз — үстел ашқан ойыншы ойынды жаппауы керек.`,
+    p2pJoinFail: 'Қосылу мүмкін болмады. Интернетті тексеріп, қайталап көріңіз.',
+    yourTurn: s => `Сіздің кезегіңіз (сіз — ${s}).`, theirTurn: s => `Қарсыластың кезегі (сіз — ${s}).`, over: 'Ойын аяқталды.',
+    you: 'сіз', foeName: 'қарсылас', free: 'бос', sitBtn: 'Отыру', standBtn: 'Тұру',
+    dbHint: 'Екі ойыншы бір үстел нөмірін енгізіп, әрқайсысы өз жағына отырады.', dbJoining: c => `${c} үстеліне қосылудамыз…`,
+    dbNoRight: 'Бұл үстелде жүруге құқығыңыз жоқ — тек көре аласыз.', dbLost: 'Үстелмен байланыс үзілді. «Үстелге отыру» батырмасын қайта басыңыз.',
+    seatBusy: 'Орынды біреу алып жатыр — қайталап көріңіз', seatTaken: 'Бұл орын бос емес',
+    dbViewer: c => `${c}-үстел: сіз көрерменсіз — тек шақырылған редактор жүре алады.`, dbChoose: c => `${c}-үстел: жағыңызды таңдаңыз немесе ойынды көріңіз.`,
+    dbOver: c => `${c}-үстел: ойын аяқталды.`, dbYour: c => `${c}-үстел: сіздің кезегіңіз.`, dbTheirs: c => `${c}-үстел: қарсыластың кезегі.`,
+    botStart: 'Ойынды бастау', botStop: 'Компьютерсіз ойнау', easy: 'Оңай', medium: 'Орташа', hard: 'Қиын', playAs: 'Мен ойнаймын:',
+    thinking: 'Компьютер ойлануда…', botOn: (lv, s) => `Компьютер (${lv}) — ${s} жақта.`, botHint: 'Деңгейді және жағыңызды таңдап, «Ойынды бастау» басыңыз.',
+  },
+  ru: {
+    newGame: 'Новая партия', sure: 'Точно? Ещё раз', undo: 'Отменить ход', intro: '▶ Заставка', sound: '🔊 Звуки', noSound: '🔇 Без звуков',
+    view: 'Вид', top: 'Сверху', online: 'Игра по сети', bot: 'Против компьютера', moves: 'Ходы', rules: 'Правила',
+    tableNo: 'Номер стола', sit: 'Сесть за стол', leave: 'Выйти из-за стола', createTable: 'Создать стол', join: 'Подключиться',
+    offline: 'Игра по сети работает на сайте игры и в версии на claude.ai.',
+    rulesHtml: `<li><b>Цель</b> — собрать караван: все 7 своих фигур в одну линию — по вертикали, по длинной диагонали или поперёк доски (от среднего ряда и дальше, не на своих трёх рядах), не давая сопернику собрать свой.</li>
+      <li><b>Керуенбасы</b> ходит как ферзь — по линиям на любое расстояние.</li>
+      <li><b>Қарауыл</b> — 3 дальних хода за партию, <b>кеме</b> — 1; в остальное время по одному шагу.</li>
+      <li><b>Аруана, бактриан, дромедар, нар</b> — по одному шагу вдоль линии.</li>
+      <li>Ходить можно только на свободный город; фигуры не бьют друг друга и не перепрыгивают.</li>`,
+    note: 'Нажмите фигуру — подсветятся города, куда она может пойти. Доску можно вращать и приближать. Первыми ходят белые.',
+    turnN: (n, s) => `Ход ${n} · ходят ${s}`, won: s => `Победа: ${s}! Караван собран.`,
+    longLeft: (q, k) => `дальних ходов: қарауыл ${q}/3, кеме ${k}/1`, longMove: ' (дальний ход)',
+    caravan: (s, l) => `★ ${s} собрали караван ${l}!`, row: 'поперёк доски', col: 'по вертикали', diag: 'по диагонали',
+    cantGo: n => `${n} туда не ходит`, busy: 'Город занят', nowMoves: s => `Сейчас ходят ${s}`,
+    sitFirst: 'Сядьте за стол, чтобы ходить', foe: 'Это фигуры соперника', foeTurn: 'Сейчас ход соперника', botPiece: 'Это фигуры компьютера',
+    queen: 'ходит как ферзь', longN: n => `дальних ходов: ${n}`, step: 'ходит на 1 шаг',
+    p2pHint: 'Один игрок создаёт стол, второй вводит его номер.', p2pOpening: 'Создаём стол…',
+    p2pOpened: c => `Стол ${c} создан. Скажите этот номер сопернику — вы играете за Ақ.`,
+    p2pJoined: s => `Соперник за столом. Вы играете за ${s}.`, p2pLeft: 'Соперник отключился. Он может подключиться заново по тому же номеру.',
+    p2pLost: 'Связь с соперником прервалась.', p2pIdTaken: 'Этот номер занят — нажмите «Создать стол» ещё раз.',
+    p2pFail: 'Не удалось создать стол. Проверьте интернет и попробуйте ещё раз.', p2pNeed4: 'Введите номер стола из 4 цифр.',
+    p2pJoining: c => `Подключаемся к столу ${c}…`, p2pNoTable: c => `Стола ${c} нет. Проверьте номер — создатель стола должен держать игру открытой.`,
+    p2pJoinFail: 'Не удалось подключиться. Проверьте интернет и попробуйте ещё раз.',
+    yourTurn: s => `Ваш ход (вы — ${s}).`, theirTurn: s => `Ход соперника (вы — ${s}).`, over: 'Партия окончена.',
+    you: 'вы', foeName: 'соперник', free: 'свободно', sitBtn: 'Сесть', standBtn: 'Встать',
+    dbHint: 'Оба игрока вводят один номер стола и садятся каждый за свою сторону.', dbJoining: c => `Подключаемся к столу ${c}…`,
+    dbNoRight: 'У вас нет права делать ходы за этим столом — можно только смотреть.', dbLost: 'Связь со столом прервалась. Нажмите «Сесть за стол» ещё раз.',
+    seatBusy: 'Место сейчас занимают — попробуйте ещё раз', seatTaken: 'Это место уже занято',
+    dbViewer: c => `Стол ${c}: вы зритель — делать ходы может только приглашённый редактор.`, dbChoose: c => `Стол ${c}: выберите сторону или смотрите партию.`,
+    dbOver: c => `Стол ${c}: партия окончена.`, dbYour: c => `Стол ${c}: ваш ход.`, dbTheirs: c => `Стол ${c}: ход соперника.`,
+    botStart: 'Начать партию', botStop: 'Играть без компьютера', easy: 'Легко', medium: 'Средне', hard: 'Сложно', playAs: 'Я играю за:',
+    thinking: 'Компьютер думает…', botOn: (lv, s) => `Компьютер (${lv}) играет за ${s}.`, botHint: 'Выберите уровень и сторону и нажмите «Начать партию».',
+  },
+};
+let LANG = 'kk';
+try { LANG = localStorage.getItem('uly-keruen-lang') || 'kk'; } catch (e) {}
+function T(key, ...a) { const v = (I18N[LANG] || I18N.kk)[key]; return typeof v === 'function' ? v(...a) : v ?? key; }
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = T(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = T(el.dataset.i18nPh); el.setAttribute('aria-label', T(el.dataset.i18nPh)); });
+  const rules = document.getElementById('rules'); if (rules) rules.innerHTML = T('rulesHtml');
+  document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === LANG));
+}
+
 const k = (r, c) => r + ',' + c;
 const rc = key => key.split(',').map(Number);
 const city = key => { const [r, c] = rc(key); return CITIES[r][c].replace('\n', ''); };
@@ -244,7 +333,7 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = 1.32;
 view.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -260,8 +349,8 @@ controls.minDistance = 5;
 controls.maxDistance = 22;
 controls.enablePan = false;
 
-const hemi = new THREE.HemisphereLight(0xdfe6f2, 0x8a6a48, 0.85); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffe2bf, 2.6);
+const hemi = new THREE.HemisphereLight(0xe8eef8, 0x9a7a55, 1.05); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffe6c6, 3.0);
 sun.position.set(-6, 11, -7);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -534,6 +623,143 @@ billboard(skylineTexture(3), 64, 16, -8, 4.2, -62, 0);
 billboard(skylineTexture(9), 64, 16, 10, 4.2, 62, Math.PI);
 billboard(caravanTexture(), 18, 3.4, -30, 3.0, -38, 0.6);
 billboard(caravanTexture(), 18, 3.4, 34, 2.6, 30, Math.PI + 0.7);
+// ---------- Bazaar: the market around the board ----------
+// Striped awnings over stalls of spice cones, sacks, jars, baskets and rolled carpets, brass lanterns,
+// a tiled caravanserai gate, palms, dust drifting in the light and birds high above.
+const bazaar = new THREE.Group(); scene.add(bazaar);
+function stripeTexture(a, b, n = 8) {
+  const [c, g] = canvas(256, 256); const w = 256 / n;
+  for (let i = 0; i < n; i++) { g.fillStyle = i % 2 ? b : a; g.fillRect(i * w, 0, w, 256); }
+  g.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 0; i < 3000; i++) g.fillRect(Math.random() * 256, Math.random() * 256, 1, 1);
+  return tex(c);
+}
+function tileTexture() {
+  const [c, g] = canvas(256, 256);
+  g.fillStyle = '#1f6f8b'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    const x = i * 64 + 32, y = j * 64 + 32;
+    g.fillStyle = '#e9d9a6'; g.beginPath(); g.moveTo(x, y - 26); g.lineTo(x + 26, y); g.lineTo(x, y + 26); g.lineTo(x - 26, y); g.fill();
+    g.fillStyle = '#0f3d5c'; g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill();
+    g.fillStyle = '#c9a24a'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
+  }
+  return tex(c, 1);
+}
+const M = {
+  wood: new THREE.MeshStandardMaterial({ map: lightWood, color: 0xa87a52, roughness: 0.8 }),
+  clay: new THREE.MeshStandardMaterial({ color: 0xb5643a, roughness: 0.85 }),
+  sack: new THREE.MeshStandardMaterial({ color: 0xa88a5c, roughness: 1 }),
+  basket: new THREE.MeshStandardMaterial({ color: 0xa8834f, roughness: 1 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xc89b3c, roughness: 0.35, metalness: 0.8 }),
+  glow: new THREE.MeshStandardMaterial({ color: 0xffb35a, emissive: 0xff9a3a, emissiveIntensity: 2.2 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xd8bf94, roughness: 0.95 }),
+  tiles: new THREE.MeshStandardMaterial({ map: tileTexture(), roughness: 0.5 }),
+  dome: new THREE.MeshStandardMaterial({ color: 0x2f8fa8, roughness: 0.35, metalness: 0.1 }),
+  trunk: new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 1 }),
+  leaf: new THREE.MeshStandardMaterial({ color: 0x5f7d3a, roughness: 0.9, side: THREE.DoubleSide }),
+};
+const SPICES = [0xb3261e, 0xd9711c, 0xe2b31f, 0x7a3d1c, 0x6e7d2b, 0xc24d2c];
+const add3 = (g, geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); return o; };
+const JAR = new THREE.LatheGeometry([[0, 0], [0.12, 0], [0.2, 0.12], [0.22, 0.25], [0.16, 0.42], [0.09, 0.5], [0.1, 0.56], [0, 0.56]].map(p => new THREE.Vector2(p[0], p[1])), 24);
+function stall(x, z, yaw, a, b) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = yaw; bazaar.add(g);
+  for (const [px, pz] of [[-1.5, -1], [1.5, -1], [-1.5, 1], [1.5, 1]]) add3(g, new THREE.CylinderGeometry(0.05, 0.06, 2.6, 8), M.wood, px, 1.3, pz);
+  const cg = new THREE.PlaneGeometry(3.4, 2.4, 16, 10); cg.rotateX(-Math.PI / 2);
+  const cp = cg.attributes.position;
+  for (let i = 0; i < cp.count; i++) { const u = cp.getX(i) / 1.7, v = cp.getZ(i) / 1.2; cp.setY(i, -0.18 * (1 - u * u) * (1 - v * v) + v * 0.25); }
+  cg.computeVertexNormals();
+  const canopy = add3(g, cg, new THREE.MeshStandardMaterial({ map: stripeTexture(a, b), roughness: 0.9, side: THREE.DoubleSide }), 0, 2.62, 0);
+  canopy.castShadow = true;
+  add3(g, new THREE.BoxGeometry(2.8, 0.08, 1.2), M.wood, 0, 0.8, 0.2);
+  for (const [px, pz] of [[-1.3, -0.3], [1.3, -0.3], [-1.3, 0.7], [1.3, 0.7]]) add3(g, new THREE.BoxGeometry(0.07, 0.8, 0.07), M.wood, px, 0.4, pz);
+  for (let i = 0; i < 5; i++) {                                       // spice cones in baskets
+    const sx = -1.1 + i * 0.55;
+    add3(g, new THREE.CylinderGeometry(0.22, 0.18, 0.14, 16, 1, true), M.basket, sx, 0.91, 0.25).material.side = THREE.DoubleSide;
+    add3(g, new THREE.ConeGeometry(0.21, 0.24 + Math.random() * 0.1, 18), new THREE.MeshStandardMaterial({ color: SPICES[(i + Math.floor(x)) % SPICES.length], roughness: 1 }), sx, 1.06, 0.25);
+  }
+  for (let i = 0; i < 4; i++) {                                       // sacks on the ground
+    const s = add3(g, new THREE.SphereGeometry(0.28, 16, 12), M.sack, -1.2 + i * 0.75, 0.26, 1.15); s.scale.set(1, 1.2, 1);
+    add3(g, new THREE.ConeGeometry(0.09, 0.16, 10), M.sack, -1.2 + i * 0.75, 0.62, 1.15);
+  }
+  for (let i = 0; i < 3; i++) { const j = add3(g, JAR, M.clay, -1.6 + i * 0.4, 0, -0.7 - (i % 2) * 0.25); j.scale.setScalar(0.9 + Math.random() * 0.4); }
+  const carpets = [0x7a1f1a, 0x1d2a4a, 0x8a5a1a];
+  for (let i = 0; i < 3; i++) { const r = add3(g, new THREE.CylinderGeometry(0.13, 0.13, 1.6, 16), new THREE.MeshStandardMaterial({ map: carpetTex, color: carpets[i], roughness: 1 }), 1.15 + i * 0.05, 0.13 + i * 0.25, -0.65); r.rotation.x = Math.PI / 2; r.rotation.z = 0.15 * i; }
+  const lantern = new THREE.Group(); lantern.position.set(0, 2.25, 1.05); g.add(lantern);   // brass lantern hanging from the front beam
+  add3(lantern, new THREE.CylinderGeometry(0.008, 0.008, 0.3, 4), M.brass, 0, 0.15, 0);
+  add3(lantern, new THREE.SphereGeometry(0.09, 12, 10), M.glow, 0, -0.08, 0);
+  add3(lantern, new THREE.ConeGeometry(0.11, 0.1, 8), M.brass, 0, 0.03, 0);
+  lanterns.push(lantern);
+  return g;
+}
+const lanterns = [];
+const carpetTex = carpetTexture();
+stall(-7.6, -8.4, 0.55, '#b3261e', '#f1e3c6');
+stall(-2.6, -10.2, 0.12, '#1f6f8b', '#f1e3c6');
+stall(2.8, -10.2, -0.12, '#d9a640', '#7a1f1a');
+stall(7.8, -8.4, -0.55, '#2d5f3a', '#f1e3c6');
+stall(-10.6, -2.4, 1.3, '#7a1f1a', '#e9c27a');
+stall(10.6, -2.4, -1.3, '#1d2a4a', '#e9c27a');
+
+{ // caravanserai gate: tiled portal with a pointed arch and two domed towers
+  const g = new THREE.Group(); g.position.set(0, 0, -21); bazaar.add(g);
+  const s = new THREE.Shape(); s.moveTo(-4.5, 0); s.lineTo(4.5, 0); s.lineTo(4.5, 8); s.lineTo(-4.5, 8); s.lineTo(-4.5, 0);
+  const arch = new THREE.Path(); arch.moveTo(-1.8, 0); arch.lineTo(-1.8, 4); arch.quadraticCurveTo(-1.6, 6.2, 0, 6.8); arch.quadraticCurveTo(1.6, 6.2, 1.8, 4); arch.lineTo(1.8, 0); arch.lineTo(-1.8, 0);
+  s.holes.push(arch);
+  const portal = new THREE.ExtrudeGeometry(s, { depth: 1.2, bevelEnabled: false });
+  const uv = portal.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 0.7, uv.getY(i) * 0.7);
+  add3(g, portal, [M.tiles, M.wall], 0, 0, 0);
+  add3(g, new THREE.BoxGeometry(22, 4.2, 1), M.wall, 0, 2.1, -0.3);
+  for (const x of [-5.6, 5.6]) {
+    add3(g, new THREE.CylinderGeometry(0.9, 1.05, 10, 20), M.tiles, x, 5, 0.6);
+    add3(g, new THREE.SphereGeometry(1.0, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.dome, x, 10, 0.6);
+  }
+  add3(g, new THREE.SphereGeometry(2.6, 24, 14, 0, Math.PI * 2, 0, Math.PI / 2), M.dome, 0, 8, -2.5);
+}
+function palm(x, z, h) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); bazaar.add(g);
+  const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.3, h * 0.35, 0.1), new THREE.Vector3(0.2, h * 0.7, 0.3), new THREE.Vector3(-0.2, h, 0.2)];
+  const trunk = add3(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 20, 0.18, 8), M.trunk, 0, 0, 0);
+  const top = pts[3];
+  for (let i = 0; i < 10; i++) {
+    const a = i / 10 * Math.PI * 2, lg = new THREE.PlaneGeometry(2.6, 0.5, 10, 1), lp = lg.attributes.position;
+    for (let j = 0; j < lp.count; j++) { const u = (lp.getX(j) + 1.3) / 2.6; lp.setX(j, lp.getX(j) + 1.3); lp.setY(j, lp.getY(j) * (1 - u) - u * u * 1.0); }
+    lg.computeVertexNormals();
+    const leaf = add3(g, lg, M.leaf, top.x, top.y, top.z); leaf.rotation.set(0.3 * Math.sin(i), a, 0.15);
+  }
+  return trunk;
+}
+palm(-13, -13, 6.5); palm(-15.5, -6, 5.5); palm(14, -12, 7); palm(16, -4, 5.8); palm(-12, 9, 6); palm(13.5, 10, 6.3);
+
+// dust in the light
+const dustGeo = new THREE.BufferGeometry(), DN = 500, dp = new Float32Array(DN * 3);
+for (let i = 0; i < DN; i++) { dp[i * 3] = (Math.random() - 0.5) * 18; dp[i * 3 + 1] = 0.3 + Math.random() * 4.5; dp[i * 3 + 2] = (Math.random() - 0.5) * 18; }
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dp, 3));
+const dustTex = (() => { const [c, g] = canvas(64, 64); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,240,210,1)'); gr.addColorStop(1, 'rgba(255,240,210,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return tex(c); })();
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ size: 0.06, map: dustTex, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+scene.add(dust);
+// birds circling high over the market
+const birds = [...Array(6)].map((_, i) => {
+  const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.6, 0.15, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.6, 0.15, 0)]);
+  const b = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x3a2a24 })); b.userData = { r: 16 + i * 3, h: 13 + (i % 3) * 2, s: 0.05 + i * 0.008, a: i };
+  scene.add(b); return b;
+});
+const marketCamels = [];
+function addMarketCamels() {                      // real camels resting by the stalls, sand-coloured and breathing
+  const fur = new THREE.MeshStandardMaterial({ color: 0xc8a272, roughness: 0.92 }), furV = fur.clone(); furV.vertexColors = true;
+  for (const [file, x, z, yaw, s] of [['aruana', -5.2, -7.2, 0.9, 3.1], ['nar', 5.4, -7.4, 2.4, 3.0], ['baktrian', -9.6, 1.6, 1.8, 3.2], ['dromedar', 9.8, 2.2, -1.9, 3.0]]) {
+    const T = TYPES.find(t => t.file === file); const c = sculpted(T, fur, furV); if (!c) continue;
+    c.children[0].visible = false;                 // no figurine base for a living camel
+    c.position.set(x, -0.08 * s, z); c.scale.setScalar(s); c.rotation.y = yaw; c.userData.kind = 'camel';
+    scene.add(c); marketCamels.push(c);
+  }
+}
+function animateWorld(now, dt) {
+  const t = now / 1000, p = dustGeo.attributes.position;
+  for (let i = 0; i < DN; i++) { p.array[i * 3 + 1] += Math.sin(t * 0.3 + i) * 0.0008; p.array[i * 3] += Math.cos(t * 0.2 + i * 0.7) * 0.0006; }
+  p.needsUpdate = true;
+  for (const b of birds) { const u = b.userData, a = t * u.s + u.a; b.position.set(Math.cos(a) * u.r, u.h + Math.sin(t + u.a) * 0.5, Math.sin(a) * u.r - 6); b.rotation.y = -a; b.scale.y = 1 + 0.6 * Math.sin(t * 6 + u.a); }
+  lanterns.forEach((l, i) => { l.rotation.z = Math.sin(t * 0.9 + i) * 0.06; l.children[1].material.emissiveIntensity = 2 + Math.sin(t * 7 + i * 3) * 0.25; });
+  for (const c of marketCamels) animateRig(c, dt);
+}
 
 
 const frameShape = new THREE.Shape(wavyFrame(4.75, 0.12));
@@ -803,16 +1029,24 @@ async function loadFigures() {
     }));
   } catch (e) { console.warn('sculpted figures not loaded, using simple ones', e); }
 }
-function sculpted(T, m) {
+const MATV = { b: MAT.b.clone(), w: MAT.w.clone() };
+MATV.b.vertexColors = MATV.w.vertexColors = true;
+function sculpted(T, m, mvOverride) {
   const F = FIG[T.file]; if (!F) return null;
+  const mv = mvOverride || MATV[m === MAT.b ? 'b' : 'w'];
   const [root, up] = rigged(m, T.kind === 'camel' ? 'pace' : T.kind === 'horse' ? 'trot' : 'sail');
   for (const [name, geo] of Object.entries(F.parts)) {
+    const mat = geo.attributes.color ? mv : m;
     if (name.startsWith('leg_')) {
       const hip = F.pivots[name], pivot = new THREE.Group(); pivot.position.set(...hip); root.add(pivot);
-      mesh(pivot, geo, m);
+      mesh(pivot, geo, mat);
       root.userData.legs.push({ pivot, front: name.includes('front'), left: name.endsWith('_l') });
-    } else mesh(up, geo, m);
+    } else if (name === 'head' || name === 'tail') {        // neck+head and tail swing on their own pivots
+      const pivot = new THREE.Group(); pivot.position.set(...F.pivots[name]); up.add(pivot);
+      mesh(pivot, geo, mat); root.userData[name] = pivot;
+    } else mesh(up, geo, mat);
   }
+  root.userData.seed = Math.random() * 100;
   return root;
 }
 function makePiece(s, t) {
@@ -879,10 +1113,10 @@ function movesOf(p) {
 }
 
 const LINES = [];
-for (let r = 0; r < N; r++) LINES.push({ cells: [...Array(N)].map((_, c) => k(r, c)), sides: (r <= 3 ? 'b' : '') + (r >= 3 ? 'w' : ''), name: 'поперёк доски' });
-for (let c = 0; c < N; c++) LINES.push({ cells: [...Array(N)].map((_, r) => k(r, c)), sides: 'bw', name: 'по вертикали' });
-LINES.push({ cells: [...Array(N)].map((_, i) => k(i, i)), sides: 'bw', name: 'по диагонали' });
-LINES.push({ cells: [...Array(N)].map((_, i) => k(i, N - 1 - i)), sides: 'bw', name: 'по диагонали' });
+for (let r = 0; r < N; r++) LINES.push({ cells: [...Array(N)].map((_, c) => k(r, c)), sides: (r <= 3 ? 'b' : '') + (r >= 3 ? 'w' : ''), name: 'row' });
+for (let c = 0; c < N; c++) LINES.push({ cells: [...Array(N)].map((_, r) => k(r, c)), sides: 'bw', name: 'col' });
+LINES.push({ cells: [...Array(N)].map((_, i) => k(i, i)), sides: 'bw', name: 'diag' });
+LINES.push({ cells: [...Array(N)].map((_, i) => k(i, N - 1 - i)), sides: 'bw', name: 'diag' });
 function caravanLine(s) {
   const occ = cellMap();
   return LINES.find(L => L.sides.includes(s) && L.cells.every(c => occ[c] && occ[c].s === s)) || null;
@@ -969,6 +1203,32 @@ function renderSamples() {
     for (const [m, a, dec] of [[1, 0.5, 0.35], [1.003, 0.4, 0.3], [1.59, 0.3, 0.25], [2.14, 0.25, 0.18], [2.83, 0.18, 0.12], [3.91, 0.1, 0.08]]) ring(d, sr, 0.004, f0 * m, dec, a);
     grains(d, sr, 25, 0, 0.015, 0.3, true);
   }));
+  // camel groan: a rough, gurgling vocal fry — jittery glottal pulses ringing through the throat's formants
+  BUF.groan = [0, 1, 2].map(() => sample(1.5, (d, sr) => {
+    let tt = 0.04; const f0 = 62 + Math.random() * 18;
+    while (tt < 1.35) {
+      const env = Math.sin(Math.PI * Math.min(1, tt / 1.35)) ** 0.7, gurgle = 0.55 + 0.45 * Math.abs(Math.sin(tt * 160 + Math.sin(tt * 37) * 4));
+      const a = env * gurgle * (0.7 + Math.random() * 0.6), rise = 1 + 0.25 * Math.sin(Math.PI * tt / 1.35);
+      ring(d, sr, tt, 420 * rise, 0.004, a); ring(d, sr, tt, 1050 * rise, 0.0025, a * 0.6); ring(d, sr, tt, 2450, 0.0015, a * 0.25);
+      tt += 1 / (f0 * rise * (0.85 + Math.random() * 0.3));
+    }
+    let lp = 0; for (let i = 0; i < d.length; i++) { lp += 0.06 * (R() - lp); const x = i / sr; d[i] += lp * 0.8 * Math.sin(Math.PI * Math.min(1, x / 1.4)); }
+  }));
+  // snorts: a burst of breath through the nose with fluttering lips
+  const snort = (len, flutter, f1, f2) => sample(len, (d, sr) => {
+    let lp = 0, bp = 0, prev = 0;
+    for (let i = 0; i < d.length; i++) {
+      const x = i / sr, env = Math.min(1, x / 0.02) * Math.exp(-x / (len * 0.35)), fl = 0.5 + 0.5 * Math.sin(2 * Math.PI * flutter * x + Math.sin(x * 9) * 2);
+      const n = R(); lp += 0.18 * (n - lp); bp = lp - prev; prev = lp;
+      d[i] = (lp * 0.7 + bp * 2.2) * env * (0.35 + 0.65 * fl);
+    }
+    ring(d, sr, 0.01, f1, 0.03, 0.15); ring(d, sr, 0.015, f2, 0.02, 0.08);
+  });
+  BUF.snort = [0, 1, 2].map(() => snort(0.45, 34 + Math.random() * 10, 600, 1300));
+  BUF.hsnort = [0, 1].map(() => snort(0.65, 26 + Math.random() * 8, 480, 1150));
+  BUF.flap = [0, 1].map(() => sample(0.7, (d, sr) => {      // canvas sail catching the wind
+    for (const at of [0.02, 0.17, 0.3, 0.46]) { let lp = 0; const i0 = Math.floor(at * sr); for (let i = 0; i < 0.09 * sr; i++) { lp += 0.25 * (R() - lp); d[i0 + i] += lp * Math.exp(-i / sr / 0.025) * (1 - at); } }
+  }));
   BUF.tap = sample(0.12, (d, sr) => { ring(d, sr, 0, 780, 0.01, 0.8); ring(d, sr, 0, 2150, 0.004, 0.4); grains(d, sr, 8, 0, 0.004, 0.4, true); });
   BUF.thud = sample(0.2, (d, sr) => { let lp = 0; for (let i = 0; i < 0.12 * sr; i++) { lp += 0.03 * (R() - lp); d[i] += lp * Math.exp(-i / sr / 0.03); } ring(d, sr, 0, 140, 0.03, 0.4); });
   BUF.pluck = [146.8, 220, 293.7, 370, 440, 587.3].map(f => sample(1.4, (d, sr) => {    // Karplus–Strong dombra string
@@ -992,6 +1252,10 @@ const SFX = {
   water: (pan, v = 1) => play(anyOf(BUF.water), 0.45 * v, pan),
   creak: (pan, v = 1) => play(anyOf(BUF.creak), 0.16 * v, pan),
   select: () => play(BUF.tap, 0.5),
+  groan: (pan, v = 1) => play(anyOf(BUF.groan), 0.42 * v, pan),
+  snort: (pan, v = 1) => play(anyOf(BUF.snort), 0.38 * v, pan),
+  hsnort: (pan, v = 1) => play(anyOf(BUF.hsnort), 0.4 * v, pan),
+  flap: (pan, v = 1) => play(anyOf(BUF.flap), 0.35 * v, pan),
   deny: () => play(BUF.thud, 0.5),
   win: () => [0, 1, 2, 3, 4, 5, 3, 5].forEach((n, i) => play(BUF.pluck[n], 0.32, i % 2 ? 0.25 : -0.25, i * 0.12)),
 };
@@ -1008,9 +1272,19 @@ function footfall(o) {
 }
 function startSound(o) {
   const u = o.userData, pan = o.position.x / 4;
-  if (u.kind === 'ship') { sfx('water', pan); sfx('creak', pan); }
-  else if (u.kind !== 'horse' && Math.random() < 0.6) sfx('bell', pan);
+  if (u.kind === 'ship') { sfx('water', pan); sfx('creak', pan); sfx('flap', pan); }
+  else if (u.kind === 'horse') sfx('hsnort', pan, 0.8);
+  else { if (Math.random() < 0.5) sfx('bell', pan); if (Math.random() < 0.3) sfx('groan', pan, 0.8); }
 }
+// a voice when a figure is picked up
+function pickSound(o) {
+  const u = o.userData, pan = o.position.x / 4, r = Math.random();
+  if (u.kind === 'ship') sfx('flap', pan, 0.8);
+  else if (u.kind === 'horse') sfx('hsnort', pan);
+  else if (r < 0.55) sfx('snort', pan); else if (r < 0.8) sfx('groan', pan, 0.7);
+}
+// now and then one of the market camels groans in the distance
+setInterval(() => { if (!marketCamels.length || document.hidden) return; const c = marketCamels[Math.floor(Math.random() * marketCamels.length)]; if (Math.random() < 0.5) sfx(Math.random() < 0.6 ? 'groan' : 'snort', c.position.x / 12, 0.22); }, 9000);
 
 // ---------- Walking ----------
 // A move is a little journey: turn towards the target city, walk there along the line, turn back to face the opponent.
@@ -1053,6 +1327,19 @@ function animateRig(o, dt) {
     const off = u.gait === 'pace' ? (L.left ? 0 : Math.PI) : (L.front === L.left ? 0 : Math.PI);
     L.pivot.rotation.z = a * (L.front ? 0.42 : 0.36) * Math.sin(ph + off);
   }
+  const now = performance.now() / 1000, sd = u.seed || 0, idle = 1 - a;
+  if (u.head) {
+    if (!u.look || now > u.look.until) u.look = { yaw: (Math.random() - 0.5) * 0.7, pitch: (Math.random() - 0.4) * 0.25, until: now + 3 + Math.random() * 6 };
+    const h = u.head, nod = a * (u.gait === 'trot' ? 0.1 : 0.08) * Math.sin(ph * 2);
+    h.rotation.y += (u.look.yaw * idle - h.rotation.y) * 0.03;
+    h.rotation.z += (u.look.pitch * idle + nod + 0.02 * Math.sin(now * 1.3 + sd) * idle - h.rotation.z) * 0.15;
+  }
+  if (u.tail) {
+    const flick = Math.max(0, Math.sin(now * 0.7 + sd * 3)) ** 12;
+    u.tail.rotation.x = a * 0.35 * Math.sin(ph) + idle * (0.08 * Math.sin(now * 2 + sd) + 0.5 * flick * Math.sin(now * 14));
+    u.tail.rotation.z = a * 0.12 + idle * 0.05 * Math.sin(now * 1.1 + sd);
+  }
+  if (u.gait !== 'sail') u.up.scale.y = 1 + idle * 0.012 * Math.sin(now * 1.7 + sd);      // breathing
   if (u.gait === 'sail') {
     u.up.rotation.x = a * 0.08 * Math.sin(ph * 0.55); u.up.rotation.z = a * 0.05 * Math.sin(ph * 0.4 + 1);
     u.up.position.y = a * 0.025 * (1 + Math.sin(ph * 0.55));
@@ -1083,27 +1370,28 @@ let legal = new Map();
 function select(p) {
   selected = p; legal = p ? movesOf(p) : new Map();
   if (!p) { selRing.visible = false; showHints([]); return; }
-  selRing.visible = true; selRing.position.copy(pos(p.cell)); selRing.position.y = TOP + 0.05; sfx('select');
+  selRing.visible = true; selRing.position.copy(pos(p.cell)); selRing.position.y = TOP + 0.05; sfx('select'); pickSound(objs[p.id]);
   showHints([...legal.keys()]);
 }
 function move(p, cell) {
   if (net.code && mySide() !== p.s) return;
   const from = p.cell;
-  if (!legal.has(cell)) { sfx('deny'); flash(`${TYPES[p.t].name} туда не ходит`); return; }
+  if (!legal.has(cell)) { sfx('deny'); flash(T('cantGo', TYPES[p.t].name)); return; }
   history.push(snapshot());
   const long = !hasEdge(p.cell, cell) || legal.get(cell) > 1;
   if (long && LONG[p.t] !== Infinity) used[p.s][p.t]++;
-  log.push(`${SIDE[p.s]} · ${TYPES[p.t].name}: ${city(p.cell)} → ${city(cell)}` + (long && LONG[p.t] !== Infinity ? ' (дальний ход)' : ''));
+  log.push(`${SIDE[p.s]} · ${TYPES[p.t].name}: ${city(p.cell)} → ${city(cell)}` + (long && LONG[p.t] !== Infinity ? T('longMove') : ''));
   const [r1, c1] = rc(p.cell), [r2, c2] = rc(cell), d = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1));
   const path = [];
   for (let i = 1; i <= d; i++) path.push(pos(k(r1 + Math.sign(r2 - r1) * i, c1 + Math.sign(c2 - c1) * i)).setY(TOP + 0.04));
   p.cell = cell;
   const line = caravanLine(p.s);
-  if (line) { winner = p.s; log.push(`★ ${SIDE[p.s]} собрали караван ${line.name}!`); setTimeout(() => startVictory(p.s, line), 1000 + 900 * d); }
+  if (line) { winner = p.s; log.push(T('caravan', SIDE[p.s], T(line.name))); setTimeout(() => startVictory(p.s, line), 1000 + 900 * d); }
   else turn = turn === 'w' ? 'b' : 'w';
   select(null); walkPath(objs[p.id], path, homeYaw(p.s)); startSound(objs[p.id]);
   if (net.code) pushMove(p.id, from, cell); else save();
   ui();
+  if (BOT.on) scheduleBot();
 }
 function undo() {
   if (!history.length) return;
@@ -1114,10 +1402,10 @@ function undo() {
 const statusEl = document.getElementById('status'), logEl = document.getElementById('log');
 function flash(text) { statusEl.textContent = text; clearTimeout(flash.t); flash.t = setTimeout(ui, 1400); }
 function ui() {
-  statusEl.textContent = winner ? `Победа: ${SIDE[winner]}! Караван собран.` : `Ход ${Math.floor(log.length / 2) + 1} · ходят ${SIDE[turn]}`;
+  statusEl.textContent = winner ? T('won', SIDE[winner]) : T('turnN', Math.floor(log.length / 2) + 1, SIDE[turn]);
   statusEl.style.color = winner ? 'var(--accent)' : '';
   document.getElementById('counts').innerHTML = ['w', 'b'].map(s =>
-    `<div><b>${SIDE[s]}</b> — дальних ходов: қарауыл ${3 - used[s][3]}/3, кеме ${1 - used[s][6]}/1</div>`).join('');
+    `<div><b>${SIDE[s]}</b> — ${T('longLeft', 3 - used[s][3], 1 - used[s][6])}</div>`).join('');
   logEl.innerHTML = log.map(l => `<li>${l}</li>`).join('');
   logEl.scrollTop = logEl.scrollHeight;
   document.getElementById('b-undo').disabled = !history.length;
@@ -1139,13 +1427,17 @@ function pick(e) {
 }
 function clickPiece(p) {
   if (winner) return;
+  if (BOT.on) {
+    if (p.s === BOT.side) { if (!selected || selected.s === BOT.side) flash(T('botPiece')); else flash(T('busy')); return; }
+    if (turn === BOT.side) { flash(T('thinking')); return; }
+  }
   if (net.code) {
     const me = mySide();
-    if (!me) { flash('Сядьте за стол, чтобы ходить'); return; }
-    if (p.s !== me) { if (!selected) flash('Это фигуры соперника'); else flash('Город занят'); return; }
-    if (turn !== me) { flash('Сейчас ход соперника'); return; }
+    if (!me) { flash(T('sitFirst')); return; }
+    if (p.s !== me) { if (!selected) flash(T('foe')); else flash(T('busy')); return; }
+    if (turn !== me) { flash(T('foeTurn')); return; }
   }
-  if (p.s !== turn) { if (selected) flash('Город занят'); else flash(`Сейчас ходят ${SIDE[turn]}`); return; }
+  if (p.s !== turn) { if (selected) flash(T('busy')); else flash(T('nowMoves', SIDE[turn])); return; }
   select(selected === p ? null : p);
 }
 let down = null;
@@ -1157,7 +1449,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   if (!h) { select(null); return; }
   const p = h.piece || cellMap()[h.cell];
   if (p) clickPiece(p);
-  else if (selected) move(selected, h.cell);
+  else if (selected && !(BOT.on && selected.s === BOT.side)) move(selected, h.cell);
 });
 const tip = document.getElementById('tip');
 renderer.domElement.addEventListener('pointermove', e => {
@@ -1166,7 +1458,7 @@ renderer.domElement.addEventListener('pointermove', e => {
   let text = '';
   const p = h && (h.piece || cellMap()[h.cell]);
   if (p) {
-    const extra = LONG[p.t] === Infinity ? 'ходит как ферзь' : LONG[p.t] ? `дальних ходов: ${longLeft(p)}` : 'ходит на 1 шаг';
+    const extra = LONG[p.t] === Infinity ? T('queen') : LONG[p.t] ? T('longN', longLeft(p)) : T('step');
     text = `${SIDE[p.s]} · ${TYPES[p.t].name} — ${city(p.cell)} · ${extra}`;
   } else if (h && h.cell) text = city(h.cell) + (TAGS[h.cell] ? ` · ${TAGS[h.cell].toLowerCase()}` : '');
   renderer.domElement.style.cursor = text ? 'pointer' : 'grab';
@@ -1381,6 +1673,7 @@ function frame_(now) {
     controls.update();
   }
   selRing.material.color.setHSL(0.45, 0.85, 0.5 + 0.12 * Math.sin(now / 250));
+  animateWorld(now, dt);
   renderer.render(scene, camera);
   requestAnimationFrame(frame_);
 }
@@ -1395,19 +1688,24 @@ fit();
 // confirm on the button itself (embedded browsers block confirm())
 document.getElementById('b-new').onclick = e => {
   const b = e.currentTarget;
-  if (!log.length || b.dataset.armed) { delete b.dataset.armed; b.textContent = 'Новая партия'; if (net.code) newOnlineGame(); else newGame(); return; }
-  b.dataset.armed = '1'; b.textContent = 'Точно? Ещё раз';
-  setTimeout(() => { delete b.dataset.armed; b.textContent = 'Новая партия'; }, 3000);
+  if (!log.length || b.dataset.armed) { delete b.dataset.armed; b.textContent = T('newGame'); if (net.code) newOnlineGame(); else { newGame(); if (BOT.on && BOT.side === 'w') scheduleBot(); } return; }
+  b.dataset.armed = '1'; b.textContent = T('sure');
+  setTimeout(() => { delete b.dataset.armed; b.textContent = T('newGame'); }, 3000);
 };
-document.getElementById('b-undo').onclick = undo;
+document.getElementById('b-undo').onclick = () => { if (BOT.busy) return; undo(); if (BOT.on && turn === BOT.side && history.length) undo(); };
+document.querySelectorAll('#bot-levels button').forEach(b => b.onclick = () => { BOT.level = +b.dataset.level; document.querySelectorAll('#bot-levels button').forEach(x => x.classList.toggle('on', x === b)); botStatus(); });
+document.querySelectorAll('#bot-side button').forEach(b => b.onclick = () => { BOT.human = b.dataset.side; document.querySelectorAll('#bot-side button').forEach(x => x.classList.toggle('on', x === b)); });
+document.getElementById('bot-start').onclick = startBotGame;
+document.getElementById('bot-stop').onclick = () => { BOT.on = false; botStatus(); select(null); };
+document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { LANG = b.dataset.lang; try { localStorage.setItem('uly-keruen-lang', LANG); } catch (e) {} applyLang(); document.getElementById('b-sound').textContent = sfxOn ? T('sound') : T('noSound'); botStatus(); ui(); });
 document.getElementById('n-join').onclick = joinTable;
 document.getElementById('p-host').onclick = p2pHost;
 document.getElementById('p-join').onclick = p2pJoin;
-document.getElementById('p-leave').onclick = () => { p2pReset(); nEl('p-turn').textContent = ''; p2pStatus('Один игрок создаёт стол, второй вводит его номер.'); if (!load()) pieces = startPieces(); select(null); placeAll(true); ui(); };
+document.getElementById('p-leave').onclick = () => { p2pReset(); nEl('p-turn').textContent = ''; p2pStatus(T('p2pHint')); if (!load()) pieces = startPieces(); select(null); placeAll(true); ui(); };
 document.getElementById('v-board').onclick = endVictory;
 document.getElementById('v-new').onclick = () => { endVictory(); if (net.code) newOnlineGame(); else newGame(); };
 document.getElementById('n-leave').onclick = () => leaveTable();
-document.getElementById('b-sound').onclick = e => { sfxOn = !sfxOn; e.currentTarget.textContent = sfxOn ? '🔊 Звуки' : '🔇 Без звуков'; };
+document.getElementById('b-sound').onclick = e => { sfxOn = !sfxOn; e.currentTarget.textContent = sfxOn ? T('sound') : T('noSound'); };
 document.getElementById('b-intro').onclick = () => { startIntro(); playMusic(); };
 document.getElementById('g-play').onclick = () => { document.getElementById('gate').remove(); startIntro(); playMusic(); };
 document.getElementById('g-skip').onclick = () => { document.getElementById('gate').remove(); };
@@ -1440,10 +1738,10 @@ function freshTable() {
 }
 async function joinTable() {
   const code = (nEl('n-code').value || '1').trim().replace(/[^A-Za-z0-9-]/g, '').slice(0, 20) || '1';
-  leaveTable(true);
+  leaveTable(true); BOT.on = false; botStatus();
   net.code = code; net.rev = -1; net.ref = net.db.doc('tables/' + code);
   history = []; select(null);
-  nEl('n-status').textContent = 'Подключаемся к столу ' + code + '…';
+  nEl('n-status').textContent = T('dbJoining', code);
   net.unsub = net.ref.onSnapshot(snap => {
     if (!snap.exists) {
       if (net.canWrite !== false && !net.created) { net.created = true; net.ref.set({ ...freshTable(), seats: { w: null, b: null } }).catch(netError); }
@@ -1463,8 +1761,7 @@ function leaveTable(silent) {
 }
 function netError(e) {
   nEl('n-status').textContent = e && e.code === 'invalid_argument'
-    ? 'У вас нет права делать ходы за этим столом — можно только смотреть.'
-    : 'Связь со столом прервалась. Нажмите «Сесть за стол» ещё раз.';
+    ? T('dbNoRight') : T('dbLost');
 }
 function applyRemote(d) {
   const prev = net.rev; net.rev = d.rev;
@@ -1494,10 +1791,10 @@ async function pushMove(id, from, to) {
 async function claimSeat(side) {
   try {
     const lease = await net.ref.acquire({ holder: net.me, ttlMs: 3000 });
-    if (!lease.acquired) { flash('Место сейчас занимают — попробуйте ещё раз'); return; }
+    if (!lease.acquired) { flash(T('seatBusy')); return; }
     const snap = await net.ref.get(), d = snap.exists ? snap.data() : { ...freshTable(), seats: { w: null, b: null } };
     const seats = { w: d.seats?.w || null, b: d.seats?.b || null };
-    if (seats[side] && seats[side] !== net.me) { flash('Это место уже занято'); return; }
+    if (seats[side] && seats[side] !== net.me) { flash(T('seatTaken')); return; }
     for (const s of ['w', 'b']) if (seats[s] === net.me) seats[s] = null;
     seats[side] = net.me;
     await net.ref.set({ ...d, seats });
@@ -1515,34 +1812,31 @@ async function newOnlineGame() {
 async function renderSeats() {
   if (net.p2p) {
     const me = mySide();
-    nEl('p-turn').textContent = !me ? '' : winner ? 'Партия окончена.' : turn === me ? `Ваш ход (вы — ${SIDE[me]}).` : `Ход соперника (вы — ${SIDE[me]}).`;
+    nEl('p-turn').textContent = !me ? '' : winner ? T('over') : turn === me ? T('yourTurn', SIDE[me]) : T('theirTurn', SIDE[me]);
     return;
   }
   const box = nEl('n-seats'); if (!box) return;
   const online = !!net.code;
   nEl('n-leave').hidden = !online; nEl('b-undo').hidden = online;
-  if (!online) { box.innerHTML = ''; nEl('n-status').textContent = 'Оба игрока вводят один номер стола и садятся каждый за свою сторону.'; return; }
+  if (!online) { box.innerHTML = ''; nEl('n-status').textContent = T('dbHint'); return; }
   const ids = [net.seats.w, net.seats.b].filter(Boolean);
   const ps = ids.length ? await net.user.profiles(ids) : {};
   box.textContent = '';
   for (const s of ['w', 'b']) {
     const row = document.createElement('div'); row.className = 'seat';
     const who = document.createElement('span'), id = net.seats[s];
-    who.textContent = `${SIDE[s]}: ` + (id ? (id === net.me ? 'вы' : (ps[id] && ps[id].name) || 'соперник') : 'свободно');
+    who.textContent = `${SIDE[s]}: ` + (id ? (id === net.me ? T('you') : (ps[id] && ps[id].name) || T('foeName')) : T('free'));
     row.appendChild(who);
     if (net.canWrite !== false) {
       const b = document.createElement('button');
-      if (id === net.me) { b.textContent = 'Встать'; b.onclick = standUp; }
-      else if (!id) { b.textContent = 'Сесть'; b.onclick = () => claimSeat(s); }
+      if (id === net.me) { b.textContent = T('standBtn'); b.onclick = standUp; }
+      else if (!id) { b.textContent = T('sitBtn'); b.onclick = () => claimSeat(s); }
       if (b.textContent) row.appendChild(b);
     }
     box.appendChild(row);
   }
   const me = mySide();
-  nEl('n-status').textContent = net.canWrite === false ? `Стол ${net.code}: вы зритель — делать ходы может только приглашённый редактор.`
-    : !me ? `Стол ${net.code}: выберите сторону или смотрите партию.`
-    : winner ? `Стол ${net.code}: партия окончена.`
-    : turn === me ? `Стол ${net.code}: ваш ход.` : `Стол ${net.code}: ход соперника.`;
+  nEl('n-status').textContent = net.canWrite === false ? T('dbViewer', net.code) : !me ? T('dbChoose', net.code) : winner ? T('dbOver', net.code) : turn === me ? T('dbYour', net.code) : T('dbTheirs', net.code);
 }
 
 // ---------- Online play on the website: direct browser-to-browser link (PeerJS) ----------
@@ -1552,7 +1846,7 @@ const p2p = { peer: null, conn: null };
 const PREFIX = 'ulykeruen-table-';
 function p2pReady() {
   if (window.claude || !window.Peer) return;
-  nEl('p2p').hidden = false; nEl('n-off').hidden = true; p2pStatus('Один игрок создаёт стол, второй вводит его номер.');
+  nEl('p2p').hidden = false; nEl('n-off').hidden = true; p2pStatus(T('p2pHint'));
 }
 function p2pStatus(t) { nEl('p-status').textContent = t; }
 function p2pReset() {
@@ -1561,6 +1855,7 @@ function p2pReset() {
   nEl('p-leave').hidden = true; nEl('p-host').disabled = nEl('p-join').disabled = false; nEl('b-undo').hidden = false;
 }
 function p2pBegin(role, code) {
+  BOT.on = false; botStatus();
   history = []; select(null);
   net.p2p = true; net.code = 'стол ' + code; net.me = role; net.seats = { w: 'host', b: role === 'guest' ? 'guest' : null };
   nEl('p-leave').hidden = false; nEl('p-host').disabled = nEl('p-join').disabled = true; nEl('b-undo').hidden = true;
@@ -1569,7 +1864,7 @@ function p2pAttach(c) {
   p2p.conn = c;
   c.on('open', () => {
     if (net.me === 'host') { net.seats.b = 'guest'; c.send({ state: snapshot(), rev: net.rev, move: null, seats: net.seats }); }
-    p2pStatus(`Соперник за столом. Вы играете за ${SIDE[mySide()]}.`); ui();
+    p2pStatus(T('p2pJoined', SIDE[mySide()])); ui();
   });
   c.on('data', d => {
     if (!d || typeof d.state !== 'string') return;
@@ -1577,30 +1872,186 @@ function p2pAttach(c) {
     if (d.rev !== net.rev) applyRemote(d);
     ui();
   });
-  c.on('close', () => { p2pStatus('Соперник отключился. Он может подключиться заново по тому же номеру.'); if (net.me === 'host') net.seats.b = null; ui(); });
-  c.on('error', () => p2pStatus('Связь с соперником прервалась.'));
+  c.on('close', () => { p2pStatus(T('p2pLeft')); if (net.me === 'host') net.seats.b = null; ui(); });
+  c.on('error', () => p2pStatus(T('p2pLost')));
 }
 function p2pHost() {
   p2pReset();
   const code = String(1000 + Math.floor(Math.random() * 9000));
   p2pBegin('host', code);
   net.rev = -1; applyRemote({ ...freshTable(), rev: 0, move: null });
-  p2pStatus('Создаём стол…');
+  p2pStatus(T('p2pOpening'));
   p2p.peer = new Peer(PREFIX + code);
-  p2p.peer.on('open', () => p2pStatus(`Стол ${code} создан. Скажите этот номер сопернику — вы играете за Ақ.`));
+  p2p.peer.on('open', () => p2pStatus(T('p2pOpened', code)));
   p2p.peer.on('connection', c => { if (p2p.conn && p2p.conn.open) { c.close(); return; } p2pAttach(c); });
-  p2p.peer.on('error', e => p2pStatus(e.type === 'unavailable-id' ? 'Этот номер занят — нажмите «Создать стол» ещё раз.' : 'Не удалось создать стол. Проверьте интернет и попробуйте ещё раз.'));
+  p2p.peer.on('error', e => p2pStatus(e.type === 'unavailable-id' ? T('p2pIdTaken') : T('p2pFail')));
 }
 function p2pJoin() {
   const code = (nEl('p-code').value || '').replace(/\D/g, '');
-  if (code.length !== 4) { p2pStatus('Введите номер стола из 4 цифр.'); return; }
+  if (code.length !== 4) { p2pStatus(T('p2pNeed4')); return; }
   p2pReset(); p2pBegin('guest', code); net.rev = -1;
-  p2pStatus(`Подключаемся к столу ${code}…`);
+  p2pStatus(T('p2pJoining', code));
   p2p.peer = new Peer();
   p2p.peer.on('open', () => p2pAttach(p2p.peer.connect(PREFIX + code, { reliable: true })));
-  p2p.peer.on('error', e => p2pStatus(e.type === 'peer-unavailable' ? `Стола ${code} нет. Проверьте номер — создатель стола должен держать игру открытой.` : 'Не удалось подключиться. Проверьте интернет и попробуйте ещё раз.'));
+  p2p.peer.on('error', e => p2pStatus(e.type === 'peer-unavailable' ? T('p2pNoTable', code) : T('p2pJoinFail')));
 }
 function p2pSend(d) { if (p2p.conn && p2p.conn.open) p2p.conn.send({ ...d, seats: net.seats }); }
+
+// ---------- Computer opponent ----------
+// The bot judges a position by how many moves each side still needs to assemble its best caravan line:
+// for every line a side may win on, the cheapest way to send its seven figures to the seven cities
+// (an assignment problem), where a city held by the opponent costs extra. It searches 1–3 plies ahead
+// with alpha–beta, looking at the most promising moves first.
+const BOT = { on: false, side: 'b', human: 'w', level: 2, busy: false };
+const IX = key => { const [r, c] = rc(key); return r * N + c; }, KEY = i => k(Math.floor(i / N), i % N);
+const RAYS = [...Array(N * N)].map((_, i) => {
+  const key = KEY(i), [r0, c0] = rc(key), rays = [];
+  for (const n of NEIGH[key] || []) {
+    const [r1, c1] = rc(n), dr = r1 - r0, dc = c1 - c0, ray = [];
+    let cur = key, r = r0, c = c0;
+    while (r + dr >= 0 && r + dr < N && c + dc >= 0 && c + dc < N && hasEdge(cur, k(r + dr, c + dc))) { r += dr; c += dc; cur = k(r, c); ray.push(r * N + c); }
+    rays.push(ray);
+  }
+  return rays;
+});
+const DIST = [...Array(N * N)].map((_, s) => {             // steps between cities along the lines
+  const d = new Array(N * N).fill(99); d[s] = 0; const q = [s];
+  while (q.length) { const a = q.shift(); for (const n of NEIGH[KEY(a)] || []) { const b = IX(n); if (d[b] > d[a] + 1) { d[b] = d[a] + 1; q.push(b); } } }
+  return d;
+});
+const BLINES = LINES.map(L => ({ cells: L.cells.map(IX), sides: L.sides }));
+
+function hungarian(a) {                                     // min-cost perfect assignment for a square matrix
+  const n = a.length, u = new Array(n + 1).fill(0), v = new Array(n + 1).fill(0), p = new Array(n + 1).fill(0), way = new Array(n + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    p[0] = i; let j0 = 0; const minv = new Array(n + 1).fill(Infinity), used = new Array(n + 1).fill(false);
+    do {
+      used[j0] = true; const i0 = p[j0]; let delta = Infinity, j1 = 0;
+      for (let j = 1; j <= n; j++) if (!used[j]) {
+        const cur = a[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+      }
+      for (let j = 0; j <= n; j++) if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta;
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do { const j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+  }
+  return -v[0];
+}
+// search state: piece cells, board occupancy, long moves used, side to move
+function botState() {
+  const st = { cell: [], side: [], type: [], occ: new Array(N * N).fill(-1), used: { w: { ...used.w }, b: { ...used.b } }, turn };
+  pieces.forEach((p, i) => { st.cell[i] = IX(p.cell); st.side[i] = p.s; st.type[i] = p.t; st.occ[st.cell[i]] = i; });
+  return st;
+}
+function genMoves(st, s) {
+  const out = [];
+  for (let i = 0; i < st.cell.length; i++) {
+    if (st.side[i] !== s) continue;
+    const t = st.type[i], lim = LONG[t], canLong = lim === Infinity || (lim !== undefined && st.used[s][t] < lim);
+    for (const ray of RAYS[st.cell[i]]) {
+      for (let j = 0; j < ray.length; j++) {
+        if (st.occ[ray[j]] !== -1) break;
+        out.push({ i, to: ray[j], long: j > 0 });
+        if (!canLong) break;
+      }
+    }
+  }
+  return out;
+}
+function doMove(st, m) {
+  const from = st.cell[m.i], undo = { m, from, prevTurn: st.turn };
+  st.occ[from] = -1; st.occ[m.to] = m.i; st.cell[m.i] = m.to;
+  if (m.long && LONG[st.type[m.i]] !== Infinity) st.used[st.side[m.i]][st.type[m.i]]++;
+  st.turn = st.turn === 'w' ? 'b' : 'w';
+  return undo;
+}
+function undoMove(st, u) {
+  const m = u.m; st.occ[m.to] = -1; st.occ[u.from] = m.i; st.cell[m.i] = u.from;
+  if (m.long && LONG[st.type[m.i]] !== Infinity) st.used[st.side[m.i]][st.type[m.i]]--;
+  st.turn = u.prevTurn;
+}
+function hasCaravan(st, s) {
+  return BLINES.some(L => L.sides.includes(s) && L.cells.every(c => st.occ[c] !== -1 && st.side[st.occ[c]] === s));
+}
+function travel(st, i, cell) {
+  const d = DIST[st.cell[i]][cell], t = st.type[i], s = st.side[i];
+  if (LONG[t] === Infinity) return Math.ceil(d / 3);
+  if (LONG[t] && st.used[s][t] < LONG[t]) return d * 0.8;
+  return d;
+}
+function caravanCost(st, s) {
+  const mine = []; for (let i = 0; i < st.cell.length; i++) if (st.side[i] === s) mine.push(i);
+  let best = Infinity;
+  for (const L of BLINES) {
+    if (!L.sides.includes(s)) continue;
+    const m = mine.map(i => L.cells.map(c => travel(st, i, c) + (st.occ[c] !== -1 && st.side[st.occ[c]] !== s ? 4 : 0)));
+    best = Math.min(best, hungarian(m));
+  }
+  return best;
+}
+const evalFor = (st, s) => caravanCost(st, s === 'w' ? 'b' : 'w') * 1.0 - caravanCost(st, s) * 1.15;
+const WIN = 100000;
+function negamax(st, depth, alpha, beta, ply, beam) {
+  const s = st.turn, foe = s === 'w' ? 'b' : 'w';
+  if (depth === 0) return evalFor(st, s);
+  let moves = genMoves(st, s);
+  if (!moves.length) return evalFor(st, s);
+  // order: wins first, then by the static value after the move
+  const scored = moves.map(m => { const u = doMove(st, m); const win = hasCaravan(st, s); const v = win ? WIN : -evalFor(st, foe); undoMove(st, u); return { m, v, win }; });
+  scored.sort((a, b) => b.v - a.v);
+  if (scored[0].win) return WIN - ply;
+  let best = -Infinity;
+  for (const { m } of scored.slice(0, beam)) {
+    const u = doMove(st, m);
+    const v = -negamax(st, depth - 1, -beta, -alpha, ply + 1, beam);
+    undoMove(st, u);
+    if (v > best) best = v;
+    if (v > alpha) alpha = v;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+function chooseBotMove() {
+  const st = botState(), s = BOT.side, foe = s === 'w' ? 'b' : 'w';
+  const moves = genMoves(st, s);
+  if (!moves.length) return null;
+  const depth = BOT.level === 1 ? 1 : BOT.level === 2 ? 2 : 3, beam = BOT.level === 3 ? 9 : 14;
+  const results = moves.map(m => {
+    const u = doMove(st, m);
+    const v = hasCaravan(st, s) ? WIN : depth > 1 ? -negamax(st, depth - 1, -Infinity, Infinity, 1, beam) : -evalFor(st, foe);
+    undoMove(st, u);
+    return { m, v: v + Math.random() * (BOT.level === 1 ? 3 : 0.3) };
+  }).sort((a, b) => b.v - a.v);
+  const pickFrom = BOT.level === 1 && Math.random() < 0.35 ? results.slice(0, Math.min(4, results.length)) : results.slice(0, 1);
+  const r = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+  return { piece: pieces[r.m.i], cell: KEY(r.m.to) };
+}
+function scheduleBot() {
+  if (!BOT.on || winner || turn !== BOT.side || BOT.busy) return;
+  BOT.busy = true; nEl('bot-status').textContent = T('thinking');
+  const wait = () => Object.values(objs).some(o => o.userData.seq && o.userData.seq.length);
+  const go = () => {
+    if (wait()) { setTimeout(go, 200); return; }
+    setTimeout(() => {
+      const mv = BOT.on && turn === BOT.side && !winner ? chooseBotMove() : null;
+      BOT.busy = false; botStatus();
+      if (!mv) return;
+      select(mv.piece);
+      setTimeout(() => { if (BOT.on && turn === BOT.side) move(mv.piece, mv.cell); }, 450);
+    }, 60);
+  };
+  setTimeout(go, 500);
+}
+const LEVEL_NAME = () => T(['easy', 'medium', 'hard'][BOT.level - 1]);
+function botStatus() { nEl('bot-status').textContent = BOT.on ? T('botOn', LEVEL_NAME(), SIDE[BOT.side]) : T('botHint'); nEl('bot-stop').hidden = !BOT.on; }
+function startBotGame() {
+  if (net.p2p) p2pReset(); if (net.code) leaveTable(true);
+  BOT.on = true; BOT.side = BOT.human === 'w' ? 'b' : 'w';
+  newGame(); goView(BOT.human); botStatus();
+  if (BOT.side === 'w') scheduleBot();
+}
 
 // ---------- Start ----------
 (async () => {
@@ -1610,10 +2061,12 @@ function p2pSend(d) { if (p2p.conn && p2p.conn.open) p2p.conn.send({ ...d, seats
   if (!load()) pieces = startPieces();
   for (const p of pieces) { const o = makePiece(p.s, p.t); o.userData.pid = p.id; scene.add(o); objs[p.id] = o; }
   placeAll(false);
+  addMarketCamels();
   // a narrow (portrait) screen needs the camera further back to fit the board
   const aspect = view.clientWidth / view.clientHeight;
   for (const v of Object.values(VIEWS)) { const f = Math.max(1, 1.15 / aspect); v[0] *= f; v[1] *= f; v[2] *= f; }
   camera.position.set(...VIEWS.b);
+  applyLang(); document.getElementById('b-sound').textContent = T('sound'); botStatus();
   ui();
   document.getElementById('loading').remove();
   p2pReady();
