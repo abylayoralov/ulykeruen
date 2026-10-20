@@ -349,8 +349,8 @@ controls.minDistance = 5;
 controls.maxDistance = 22;
 controls.enablePan = false;
 
-const hemi = new THREE.HemisphereLight(0xe8eef8, 0x9a7a55, 1.05); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xffe6c6, 3.0);
+const hemi = new THREE.HemisphereLight(0xe8eef8, 0x9a7a55, 1.25); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffe6c6, 2.3);
 sun.position.set(-6, 11, -7);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -855,11 +855,11 @@ frameShape.holes.push(hole);
 const frameGeo = new THREE.ExtrudeGeometry(frameShape, { depth: 0.34, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.09, bevelSegments: 5, curveSegments: 24 });
 frameGeo.rotateX(-Math.PI / 2);
 const frameUV = frameGeo.attributes.uv; for (let i = 0; i < frameUV.count; i++) frameUV.setXY(i, frameUV.getX(i) * 0.11, frameUV.getY(i) * 0.11);
-const frame = new THREE.Mesh(frameGeo, new THREE.MeshPhysicalMaterial({ map: lightWood, roughness: 0.32, clearcoat: 0.8, clearcoatRoughness: 0.18 }));
+const frame = new THREE.Mesh(frameGeo, new THREE.MeshPhysicalMaterial({ map: lightWood, roughness: 0.55, clearcoat: 0.25, clearcoatRoughness: 0.5, envMapIntensity: 0.7 }));
 frame.position.y = 0.0; frame.castShadow = frame.receiveShadow = true; scene.add(frame);
 
 const panel = new THREE.Mesh(new THREE.BoxGeometry(2 * H, TOP, 2 * H),
-  new THREE.MeshPhysicalMaterial({ map: darkWood, roughness: 0.3, clearcoat: 0.9, clearcoatRoughness: 0.12 }));
+  new THREE.MeshPhysicalMaterial({ map: darkWood, roughness: 0.62, clearcoat: 0.18, clearcoatRoughness: 0.55, envMapIntensity: 0.6 }));
 panel.position.y = TOP / 2; panel.receiveShadow = true; scene.add(panel);
 // the fold of the travel case across the middle
 const fold = new THREE.Mesh(new THREE.BoxGeometry(2 * H, 0.004, 0.018), new THREE.MeshStandardMaterial({ color: 0x120603 }));
@@ -881,7 +881,7 @@ const rimGold = new THREE.MeshStandardMaterial({ color: 0xb98a22, roughness: 0.4
 function buildDiscs() {
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const dark = (r + c) % 2 === 0;
-    const top = new THREE.MeshPhysicalMaterial({ map: discTexture(r, c), roughness: dark ? 0.38 : 0.55, clearcoat: dark ? 0.6 : 0.25, clearcoatRoughness: 0.3, envMapIntensity: dark ? 1 : 0.6 });
+    const top = new THREE.MeshPhysicalMaterial({ map: discTexture(r, c), roughness: dark ? 0.62 : 0.72, clearcoat: dark ? 0.12 : 0.06, clearcoatRoughness: 0.6, envMapIntensity: dark ? 0.6 : 0.45 });
     const m = new THREE.Mesh(discGeo, [dark ? rimDark : rimGold, top, dark ? rimDark : rimGold]);
     m.position.copy(pos(k(r, c))); m.position.y = TOP + 0.02;
     m.rotation.y = Math.PI / 2;   // so the text reads from the brown side
