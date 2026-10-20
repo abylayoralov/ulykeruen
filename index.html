@@ -2156,8 +2156,7 @@ function startBotGame() {
   if (!load()) pieces = startPieces();
   for (const p of pieces) { const o = makePiece(p.s, p.t); o.userData.pid = p.id; scene.add(o); objs[p.id] = o; }
   placeAll(false);
-  addMarketCamels();
-  addBazaarPeople();
+  // background camels and people are switched off until realistic models replace the sculpted ones
   // a narrow (portrait) screen needs the camera further back to fit the board
   const aspect = view.clientWidth / view.clientHeight;
   for (const v of Object.values(VIEWS)) { const f = Math.max(1, 1.15 / aspect); v[0] *= f; v[1] *= f; v[2] *= f; }
