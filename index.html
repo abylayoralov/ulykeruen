@@ -1061,7 +1061,7 @@ function animateLife(now, dt) {
 // so they read as one smooth carving rather than glued spheres.
 const MAT = {
   b: new THREE.MeshPhysicalMaterial({ color: 0x8c4520, roughness: 0.38, clearcoat: 0.45, clearcoatRoughness: 0.35, sheen: 0.4, sheenColor: 0xd08850 }),
-  w: new THREE.MeshPhysicalMaterial({ color: 0xd9c9a8, roughness: 0.48, clearcoat: 0.3, clearcoatRoughness: 0.35, sheen: 0.25, sheenColor: 0xfff4e0 }),
+  w: new THREE.MeshPhysicalMaterial({ color: 0xb8a684, roughness: 0.58, clearcoat: 0.15, clearcoatRoughness: 0.5, sheen: 0.15, sheenColor: 0xfff4e0 }),
 };
 const V = (x, y, z = 0) => new THREE.Vector3(x, y, z);
 function mesh(g, geo, m, x = 0, y = 0, z = 0) {
@@ -1101,8 +1101,8 @@ const ell = (r, sx, sy, sz) => { const g = new THREE.SphereGeometry(r, 28, 20); 
 const BASE = new THREE.LatheGeometry([[0, 0], [0.29, 0], [0.305, 0.012], [0.305, 0.03], [0.29, 0.042], [0.275, 0.05], [0.272, 0.066], [0.258, 0.078], [0, 0.08]].map(p => new THREE.Vector2(p[0], p[1])), 64);
 function base(g, m) { mesh(g, BASE, m); }
 // A figure is a root (base + legs on hip pivots) and an upper body group that sways while walking.
-function rigged(m, gait) {
-  const root = new THREE.Group(); base(root, m);
+function rigged(m, gait, ownBase) {
+  const root = new THREE.Group(); if (!ownBase) base(root, m);
   const up = new THREE.Group(); root.add(up);
   root.userData = { up, legs: [], gait, amp: 0, phase: 0 };
   return [root, up];
@@ -1285,7 +1285,7 @@ MATV.b.vertexColors = MATV.w.vertexColors = true;
 function sculpted(T, m, mvOverride) {
   const F = FIG[T.file]; if (!F) return null;
   const mv = mvOverride || MATV[m === MAT.b ? 'b' : 'w'];
-  const [root, up] = rigged(m, T.kind === 'camel' ? 'pace' : T.kind === 'horse' ? 'trot' : 'sail');
+  const [root, up] = rigged(m, T.kind === 'camel' ? 'pace' : T.kind === 'horse' ? 'trot' : 'sail', F.pivots._own_base);
   for (const [name, geo] of Object.entries(F.parts)) {
     const mat = geo.attributes.color ? mv : m;
     if (name.startsWith('leg_') && name.endsWith('_lo')) continue;
@@ -1302,7 +1302,8 @@ function sculpted(T, m, mvOverride) {
     } else if (name === 'head' || name === 'tail') {        // neck+head and tail swing on their own pivots
       const pivot = new THREE.Group(); pivot.position.set(...F.pivots[name]); up.add(pivot);
       mesh(pivot, geo, mat); root.userData[name] = pivot;
-    } else mesh(up, geo, mat);
+    } else if (name === 'base') mesh(root, geo, mat);     // the author's own base stays put while the body sways
+    else mesh(up, geo, mat);
   }
   root.userData.seed = Math.random() * 100;
   return root;
