@@ -25,8 +25,17 @@
   html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 15px/1.4 "PT Sans", system-ui, sans-serif; }
   #view { position: fixed; inset: 0; touch-action: none; }
   #view canvas { width: 100%; height: 100%; display: block; }
-  .panel { position: fixed; left: 16px; top: 16px; width: 300px; max-height: calc(100% - 32px); overflow: auto;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(6px); }
+  .panel { position: fixed; left: 16px; top: 16px; width: 300px; max-height: calc(100% - 32px); overflow: auto; z-index: 3;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(6px);
+    transition: transform .3s ease, opacity .3s ease; }
+  .panel.closed { transform: translateX(calc(-100% - 40px)); opacity: 0; pointer-events: none; }
+  .hud { position: fixed; z-index: 2; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px));
+    display: flex; gap: 8px; align-items: center; transition: opacity .3s; }
+  .hud button { width: 46px; height: 46px; border-radius: 12px; font-size: 22px; background: var(--panel); border: 1px solid var(--line);
+    box-shadow: 0 4px 14px rgba(0,0,0,.18); backdrop-filter: blur(6px); }
+  .chip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; font-weight: 700; font-size: 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18); backdrop-filter: blur(6px); max-width: calc(100vw - 90px); }
+  .close { position: absolute; right: 10px; top: 10px; width: 34px; height: 34px; padding: 0; font-size: 18px; border-radius: 10px; }
   h1 { margin: 0; font: 700 26px "PT Serif", Georgia, serif; }
   .sub { color: var(--muted); font-size: 13px; margin: 2px 0 10px; }
   .status { font-weight: 700; margin: 8px 0; }
@@ -83,11 +92,10 @@
   #n-code, #p-code { font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); min-width: 0; }
   .seat { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; font-size: 14px; }
   .seat button { padding: 4px 12px; }
-  .toggle { display: none; }
+  .lang { right: 52px !important; }
   @media (max-width: 700px) {
-    .panel { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 46%; padding: 10px 12px; }
-    .panel.min .more { display: none; }
-    .toggle { display: block; position: absolute; right: 10px; top: 10px; padding: 4px 10px; }
+    .panel { left: 0; top: 0; bottom: 0; width: min(86vw, 330px); max-height: none; border-radius: 0 16px 16px 0;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 14px calc(12px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); }
     h1 { font-size: 21px; }
   }
 </style>
@@ -127,8 +135,9 @@
   <button id="i-skip" class="skip">Өткізу · Пропустить ›</button>
   <button id="i-mute" class="skip mute">🔊</button>
 </div>
+<div class="hud" id="hud"><button id="menu-open" aria-label="Мәзір · Меню">☰</button><div class="chip" id="chip"></div></div>
 <aside class="panel" id="panel">
-  <button class="toggle" id="toggle">▾</button>
+  <button class="close" id="menu-close" aria-label="Жабу · Закрыть">✕</button>
   <h1>Ұлы Керуен</h1>
   <div class="sub">Ұлы Жібек жолы · 49 қала</div>
   <div class="lang"><button data-lang="kk">ҚАЗ</button><button data-lang="ru">РУС</button></div>
@@ -1790,7 +1799,7 @@ function startIntro() {
   }
   for (const s of ['w', 'b']) for (const o of introCast[s]) o.visible = false;
   for (const o of Object.values(objs)) o.visible = false;
-  panelEl.style.display = 'none'; introEl.style.display = 'block'; titleEl.classList.remove('on'); capEl.classList.remove('on');
+  panelEl.style.display = hudEl.style.display = 'none'; introEl.style.display = 'block'; titleEl.classList.remove('on'); capEl.classList.remove('on');
   controls.enabled = false; sunset(true);
   camera.position.set(8, 5.5, 6); controls.target.set(0, 0.3, 0);
   intro = { t0: performance.now(), cap: -1, beat: 0 };
@@ -1801,7 +1810,7 @@ function endIntro() {
   for (const s of ['w', 'b']) for (const o of introCast[s]) o.visible = false;
   pulse.visible = false;
   for (const o of Object.values(objs)) o.visible = true;
-  introEl.style.display = 'none'; panelEl.style.display = '';
+  introEl.style.display = 'none'; panelEl.style.display = hudEl.style.display = '';
   sunset(false); controls.enabled = true; controls.target.set(0, 0, 0); goView('b'); fadeMusic();
 }
 // Each figure of a caravan walks in single file from the board edge and stops on its own city,
@@ -1877,7 +1886,7 @@ function startVictory(s, line) {
   document.getElementById('v-kk').textContent = WIN_TEXT[s][0];
   document.getElementById('v-ru').textContent = WIN_TEXT[s][1];
   vicEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
-  vicEl.style.display = 'block'; panelEl.style.display = 'none';
+  vicEl.style.display = 'block'; panelEl.style.display = hudEl.style.display = 'none';
   controls.enabled = false; sunset(true);
   if (!muted) { try { const a = winAudio[s]; a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); } catch (e) {} }
 }
@@ -1886,7 +1895,7 @@ function endVictory() {
   for (const o of victory.crew) o.userData.walking = 0;
   victory = null; winRings.forEach(r => (r.visible = false));
   for (const a of Object.values(winAudio)) a.pause();
-  vicEl.style.display = 'none'; panelEl.style.display = '';
+  vicEl.style.display = 'none'; panelEl.style.display = hudEl.style.display = '';
   sunset(false); controls.enabled = true; controls.target.set(0, 0, 0); goView(mySide() || 'b');
 }
 function runVictory(now) {
@@ -1977,7 +1986,16 @@ document.getElementById('i-start').onclick = endIntro;
 document.getElementById('v-b').onclick = () => goView('b');
 document.getElementById('v-w').onclick = () => goView('w');
 document.getElementById('v-top').onclick = () => goView('top');
-document.getElementById('toggle').onclick = e => { const p = document.getElementById('panel'); p.classList.toggle('min'); e.target.textContent = p.classList.contains('min') ? '▴' : '▾'; };
+// side menu: a drawer that is closed by default on phones and open on wide screens
+const hudEl = document.getElementById('hud'), chipEl = document.getElementById('chip');
+const isPhone = () => innerWidth <= 700;
+function setMenu(open) { panelEl.classList.toggle('closed', !open); hudEl.style.opacity = open && !isPhone() ? '0' : '1'; hudEl.style.pointerEvents = open && !isPhone() ? 'none' : ''; chipEl.hidden = open; }
+document.getElementById('menu-open').onclick = () => setMenu(panelEl.classList.contains('closed'));
+document.getElementById('menu-close').onclick = () => setMenu(false);
+renderer.domElement.addEventListener('pointerdown', () => { if (isPhone() && !panelEl.classList.contains('closed')) setMenu(false); });
+for (const id of ['bot-start', 'p-host', 'p-join', 'n-join', 'v-b', 'v-w', 'v-top']) document.getElementById(id).addEventListener('click', () => { if (isPhone()) setTimeout(() => setMenu(false), 150); });
+new MutationObserver(() => { chipEl.textContent = statusEl.textContent; }).observe(document.getElementById('status'), { childList: true, characterData: true, subtree: true });
+setMenu(!isPhone());
 addEventListener('keydown', e => { if (e.key === 'Escape') select(null); if ((e.ctrlKey || e.metaKey) && e.key === 'z') undo(); });
 
 // ---------- Online play ----------
