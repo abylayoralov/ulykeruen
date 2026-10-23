@@ -774,7 +774,7 @@ async function loadPeople() {
     const loader = new GLTFLoader();
     const piv = await (await fetch('figures/people.json', { cache: 'no-cache' })).json();
     await Promise.all(['man_turban', 'man_kalpak', 'woman'].map(async n => {
-      const j = await (await fetch('figures/' + n + '.json')).json();
+      const j = await (await fetch('figures/' + n + '.json?v=' + ASSET_V)).json();
       const g = await loader.parseAsync(Uint8Array.from(atob(j.glb), ch => ch.charCodeAt(0)).buffer, ''), parts = {};
       g.scene.traverse(o => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); parts[o.name || o.parent.name] = o.geometry; } });
       PEOPLE[n] = { parts, pivots: piv[n] };
@@ -901,7 +901,7 @@ async function loadFauna() {
     const loader = new GLTFLoader();
     const piv = await (await fetch('figures/fauna.json', { cache: 'no-cache' })).json();
     await Promise.all(Object.keys(piv).map(async n => {
-      const j = await (await fetch('figures/' + n + '.json')).json();
+      const j = await (await fetch('figures/' + n + '.json?v=' + ASSET_V)).json();
       const g = await loader.parseAsync(Uint8Array.from(atob(j.glb), ch => ch.charCodeAt(0)).buffer, ''), parts = {};
       g.scene.traverse(o => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); parts[o.name || o.parent.name] = o.geometry; } });
       FAUNA[n] = { parts, pivots: piv[n] };
@@ -1060,7 +1060,7 @@ function animateLife(now, dt) {
 // Sculpted resin figures: bodies, necks and legs are lofted tubes with a varying cross-section,
 // so they read as one smooth carving rather than glued spheres.
 const MAT = {
-  b: new THREE.MeshPhysicalMaterial({ color: 0x8c4520, roughness: 0.38, clearcoat: 0.45, clearcoatRoughness: 0.35, sheen: 0.4, sheenColor: 0xd08850 }),
+  b: new THREE.MeshPhysicalMaterial({ color: 0x5e2410, roughness: 0.42, clearcoat: 0.55, clearcoatRoughness: 0.3, sheen: 0.6, sheenColor: 0xd9824a }),
   w: new THREE.MeshPhysicalMaterial({ color: 0xb8a684, roughness: 0.58, clearcoat: 0.15, clearcoatRoughness: 0.5, sheen: 0.15, sheenColor: 0xfff4e0 }),
 };
 const V = (x, y, z = 0) => new THREE.Vector3(x, y, z);
@@ -1265,6 +1265,7 @@ function ship(m) {
 }
 const homeYaw = s => s === 'b' ? Math.PI / 2 : -Math.PI / 2;
 // Sculpted figures (tools/sculpt.py → figures/*.glb): body + legs on hip pivots. The procedural builders above stay as a fallback.
+const ASSET_V = '20261023b';          // bump when figure models change, so browsers fetch the new ones
 const FIG = {};
 async function loadFigures() {
   try {
@@ -1272,7 +1273,7 @@ async function loadFigures() {
     const pivots = await (await fetch('figures/pivots.json', { cache: 'no-cache' })).json();
     await Promise.all(TYPES.map(async T => {
       // models ship as base64 GLB inside JSON (the artifact host serves JSON, not .glb)
-      const j = await (await fetch('figures/' + T.file + '.json')).json();
+      const j = await (await fetch('figures/' + T.file + '.json?v=' + ASSET_V)).json();
       const bin = Uint8Array.from(atob(j.glb), ch => ch.charCodeAt(0));
       const g = await loader.parseAsync(bin.buffer, ''), parts = {};
       g.scene.traverse(o => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); parts[o.name || o.parent.name] = o.geometry; } });
