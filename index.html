@@ -148,6 +148,7 @@
       <button id="b-undo" disabled data-i18n="undo"></button>
     </div>
     <div class="row"><button id="b-intro" data-i18n="intro"></button><button id="b-sound"></button></div>
+    <div class="row"><a href="tournament.html" style="flex:1;display:flex"><button style="flex:1" data-i18n="tour"></button></a></div>
     <h2 data-i18n="bot"></h2>
     <div class="row three" id="bot-levels">
       <button data-level="1" data-i18n="easy"></button><button data-level="2" class="on" data-i18n="medium"></button><button data-level="3" data-i18n="hard"></button>
@@ -229,6 +230,7 @@ const SIDE = { b: 'Қоңыр', w: 'Ақ' };
 // ---------- Language: Қазақша (default) / Русский ----------
 const I18N = {
   kk: {
+    tour: '🏆 Турнир және жеребе',
     newGame: 'Жаңа ойын', sure: 'Нақты ма? Тағы басыңыз', undo: 'Жүрісті қайтару', intro: '▶ Кіріспе', sound: '🔊 Дыбыс', noSound: '🔇 Дыбыссыз',
     view: 'Көрініс', top: 'Жоғарыдан', online: 'Желіде ойнау', bot: 'Компьютермен ойнау', moves: 'Жүрістер', rules: 'Ереже',
     tableNo: 'Үстел нөмірі', sit: 'Үстелге отыру', leave: 'Үстелден шығу', createTable: 'Үстел ашу', join: 'Қосылу',
@@ -263,6 +265,7 @@ const I18N = {
     thinking: 'Компьютер ойлануда…', botOn: (lv, s) => `Компьютер (${lv}) — ${s} жақта.`, botHint: 'Деңгейді және жағыңызды таңдап, «Ойынды бастау» басыңыз.',
   },
   ru: {
+    tour: '🏆 Турнир и жеребьёвка',
     newGame: 'Новая партия', sure: 'Точно? Ещё раз', undo: 'Отменить ход', intro: '▶ Заставка', sound: '🔊 Звуки', noSound: '🔇 Без звуков',
     view: 'Вид', top: 'Сверху', online: 'Игра по сети', bot: 'Против компьютера', moves: 'Ходы', rules: 'Правила',
     tableNo: 'Номер стола', sit: 'Сесть за стол', leave: 'Выйти из-за стола', createTable: 'Создать стол', join: 'Подключиться',

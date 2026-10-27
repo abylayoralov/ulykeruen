@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ұлы Керуен — Турнир</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=PT+Serif:wght@700&display=swap" rel="stylesheet">
+<style>
+  /* Layout: a header band, then setup (players + draw) or the bracket scrolling sideways round by round. */
+  :root {
+    --bg: #f3ece0; --card: #fffaf2; --ink: #2b2118; --muted: #7a6a58; --line: #e2d6c3;
+    --accent: #9a4a1f; --accent-ink: #fff; --win: #2f7d55; --gold: #c9962f;
+    --serif: "PT Serif", Georgia, serif; --sans: "PT Sans", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #17130f; --card: #221c16; --ink: #f1e7d8; --muted: #a8977f; --line: #3a3027; --accent: #d08a4f; --accent-ink: #1a120b; --win: #5cc28f; --gold: #e2b24c; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg: #17130f; --card: #221c16; --ink: #f1e7d8; --muted: #a8977f; --line: #3a3027; --accent: #d08a4f; --accent-ink: #1a120b; --win: #5cc28f; --gold: #e2b24c; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--sans); }
+  .wrap { max-width: 1200px; margin: 0 auto; padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  h1 { margin: 0; font: 700 clamp(26px, 5vw, 40px) var(--serif); text-wrap: balance; }
+  h1 small { display: block; font: 400 15px var(--sans); color: var(--muted); }
+  h2 { font: 700 20px var(--serif); margin: 0 0 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button, input, textarea { font: inherit; color: var(--ink); }
+  button { border: 1px solid var(--line); background: var(--card); padding: 9px 14px; border-radius: 10px; cursor: pointer; }
+  button.main { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: default; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .lang button { padding: 5px 10px; font-size: 13px; }
+  .lang button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 760px) { .setup { grid-template-columns: 1fr; } }
+  input[type=text], textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 9px 11px; }
+  textarea { min-height: 120px; resize: vertical; }
+  .players { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; max-height: 420px; overflow: auto; }
+  .players li { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 10px; padding: 6px 10px; }
+  .players .n { color: var(--muted); font-variant-numeric: tabular-nums; width: 26px; }
+  .players .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .players .cls { color: var(--muted); font-size: 14px; }
+  .players button { padding: 2px 9px; }
+  .note { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  .draw { display: grid; gap: 8px; margin-top: 10px; }
+  .pair { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; background: var(--bg); border-radius: 10px; padding: 8px 10px; }
+  .pair .no { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pair .vs { color: var(--accent); font-weight: 700; }
+  .pair .p { overflow-wrap: anywhere; }
+  .pair .p:last-child { text-align: right; }
+  .pair .bye { color: var(--muted); font-style: italic; }
+  .spin { animation: flick .09s steps(1) infinite; }
+  @keyframes flick { 50% { opacity: .55; } }
+  /* bracket */
+  .bracket-wrap { overflow-x: auto; padding-bottom: 8px; }
+  .bracket { display: flex; gap: 26px; min-width: max-content; align-items: stretch; }
+  .round { display: flex; flex-direction: column; min-width: 210px; }
+  .round h3 { font: 700 14px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  .round .slots { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: 12px; }
+  .match { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; position: relative; }
+  .match .num { display: block; padding: 3px 12px 0; font-size: 11px; letter-spacing: .04em; color: var(--muted); }
+  .slot { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; border-radius: 0; background: transparent; padding: 9px 12px; min-height: 42px; }
+  .slot + .slot { border-top: 1px solid var(--line); }
+  .slot .who { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .slot .cl { font-size: 12px; color: var(--muted); }
+  .slot.empty { color: var(--muted); cursor: default; }
+  .slot.won { background: color-mix(in srgb, var(--win) 16%, transparent); font-weight: 700; }
+  .slot.won::after { content: "✓"; color: var(--win); font-weight: 700; }
+  .slot.lost { color: var(--muted); text-decoration: line-through; }
+  .slot:not(.empty):not(.won):hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .champion { margin-top: 20px; text-align: center; padding: 22px; border: 2px solid var(--gold); border-radius: 16px; background: var(--card); }
+  .champion .crown { font-size: 40px; }
+  .champion .name { font: 700 clamp(26px, 5vw, 40px) var(--serif); }
+  .podium { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin-top: 8px; color: var(--muted); }
+  .hint { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .confirm { display: inline-flex; gap: 6px; align-items: center; }
+  @media print {
+    header .row, .lang, .no-print { display: none !important; }
+    body { background: #fff; color: #000; } .card, .match { border-color: #999; }
+    .bracket-wrap { overflow: visible; }
+  }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span data-t="title"></span><small data-t="subtitle"></small></h1>
+    <div class="row">
+      <div class="lang row"><button data-lang="kk">ҚАЗ</button><button data-lang="ru">РУС</button></div>
+      <a href="./" class="no-print"><button data-t="toGame"></button></a>
+    </div>
+  </header>
+
+  <section id="setup-view" class="setup">
+    <div class="card">
+      <h2 data-t="players"></h2>
+      <div class="row">
+        <input type="text" id="p-name" data-ph="name" style="flex:2;min-width:140px">
+        <input type="text" id="p-class" data-ph="klass" style="flex:1;min-width:80px">
+        <button class="main" id="p-add" data-t="add"></button>
+      </div>
+      <p class="note" data-t="pasteHint"></p>
+      <textarea id="p-bulk" data-ph="bulk"></textarea>
+      <div class="row" style="margin-top:8px"><button id="p-bulk-add" data-t="addList"></button><span id="p-clear-box"></span></div>
+      <ul class="players" id="p-list"></ul>
+    </div>
+    <div class="card">
+      <h2 data-t="drawTitle"></h2>
+      <p class="hint" id="draw-info"></p>
+      <div class="row">
+        <label class="row" style="gap:6px"><input type="checkbox" id="third"> <span data-t="third"></span></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="main" id="draw"></button>
+        <button id="start" data-t="start" disabled></button>
+      </div>
+      <div class="draw" id="pairs"></div>
+    </div>
+  </section>
+
+  <section id="bracket-view" hidden>
+    <div class="row no-print" style="justify-content:space-between;margin-bottom:12px">
+      <p class="hint" style="margin:0" data-t="clickWinner"></p>
+      <div class="row">
+        <button id="print" data-t="print"></button>
+        <span id="reset-box"></span>
+      </div>
+    </div>
+    <div class="bracket-wrap"><div class="bracket" id="bracket"></div></div>
+    <div id="third-box"></div>
+    <div id="champ"></div>
+  </section>
+</div>
+
+<script>
+const I = {
+  kk: { title: 'Ұлы Керуен турнирі', subtitle: 'Олимпиадалық жүйе · жеребе және турнир кестесі', toGame: '← Ойынға', players: 'Қатысушылар',
+    name: 'Аты-жөні', klass: 'Сынып', add: 'Қосу', pasteHint: 'Тізімді бірден қоюға болады: әр жолға бір қатысушы, сыныбын үтірден кейін жазыңыз.',
+    bulk: 'Әлихан, 5А\nАружан, 6Б\n…', addList: 'Тізімді қосу', clearAll: 'Бәрін өшіру', sure: 'Нақты ма?', yes: 'Иә', no: 'Жоқ',
+    drawTitle: 'Жеребе', doDraw: 'Жеребе тарту', redraw: 'Қайта тарту', start: 'Турнирді бастау', third: '3-орын үшін ойын',
+    info: (n, size, byes) => n < 2 ? 'Кемінде 2 қатысушы керек.' : `${n} қатысушы · ${size} орындық кесте` + (byes ? ` · ${byes} қатысушы келесі айналымға жеребемен өтеді` : ''),
+    bye: 'келесі айналымға өтеді', vs: '—', clickWinner: 'Жеңімпаздың атын басыңыз — ол келесі айналымға өтеді. Қате басылса, қайта басыңыз.',
+    print: 'Басып шығару', reset: 'Жаңа турнир', round: (r, R) => r === R - 1 ? 'Финал' : r === R - 2 ? 'Жартылай финал' : r === R - 3 ? 'Ширек финал' : `${r + 1}-айналым`,
+    tbd: '…', thirdTitle: '3-орын үшін ойын', champion: 'Жеңімпаз', second: '2-орын', thirdPlace: '3-орын', match: 'Ойын' },
+  ru: { title: 'Турнир «Ұлы Керуен»', subtitle: 'Олимпийская система · жеребьёвка и турнирная сетка', toGame: '← К игре', players: 'Участники',
+    name: 'Имя и фамилия', klass: 'Класс', add: 'Добавить', pasteHint: 'Можно вставить список целиком: по одному участнику в строке, класс — после запятой.',
+    bulk: 'Алихан, 5А\nАружан, 6Б\n…', addList: 'Добавить список', clearAll: 'Очистить всё', sure: 'Точно?', yes: 'Да', no: 'Нет',
+    drawTitle: 'Жеребьёвка', doDraw: 'Провести жеребьёвку', redraw: 'Перетянуть жребий', start: 'Начать турнир', third: 'Матч за 3-е место',
+    info: (n, size, byes) => n < 2 ? 'Нужно хотя бы 2 участника.' : `${n} участников · сетка на ${size}` + (byes ? ` · ${byes} проходят в следующий круг по жребию` : ''),
+    bye: 'проходит дальше', vs: '—', clickWinner: 'Нажмите на имя победителя — он перейдёт в следующий круг. Ошиблись — нажмите ещё раз.',
+    print: 'Распечатать', reset: 'Новый турнир', round: (r, R) => r === R - 1 ? 'Финал' : r === R - 2 ? 'Полуфинал' : r === R - 3 ? 'Четвертьфинал' : `${r + 1}-й круг`,
+    tbd: '…', thirdTitle: 'Матч за 3-е место', champion: 'Победитель', second: '2-е место', thirdPlace: '3-е место', match: 'Партия' },
+};
+const KEY = 'uly-keruen-tournament-v1';
+let S = { lang: 'kk', players: [], draw: null, third: true, started: false, results: {}, thirdWinner: null };
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const T = (k, ...a) => { const v = I[S.lang][k]; return typeof v === 'function' ? v(...a) : v; };
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const uid = () => Math.random().toString(36).slice(2, 9);
+const pl = id => S.players.find(p => p.id === id);
+
+function sizeFor(n) { let s = 2; while (s < n) s *= 2; return s; }
+// standard seeding order so byes are spread evenly across the bracket (1 v 16, 8 v 9, …)
+function seedOrder(size) { let o = [1]; while (o.length < size) { const m = o.length * 2 + 1; o = o.flatMap(x => [x, m - x]); } return o; }
+function makeDraw() {
+  const ids = S.players.map(p => p.id);
+  for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+  const size = sizeFor(ids.length), order = seedOrder(size), slots = order.map(s => ids[s - 1] || null);
+  return slots;            // round-1 slots in order: pairs (0,1), (2,3), …
+}
+// the whole bracket as rounds of matches derived from the draw and the clicked results
+function bracket() {
+  const slots = S.draw, R = Math.log2(slots.length), rounds = [];
+  let cur = slots;
+  for (let r = 0; r < R; r++) {
+    const ms = [], next = [];
+    for (let i = 0; i < cur.length; i += 2) {
+      const id = `${r}-${i / 2}`, a = cur[i], b = cur[i + 1];
+      let w = S.results[id];
+      if (r === 0 && (a && !b)) w = a; if (r === 0 && (!a && b)) w = b;      // a bye
+      if (w && w !== a && w !== b) w = null;
+      ms.push({ id, a, b, w, bye: r === 0 && (!a || !b) });
+      next.push(w || null);
+    }
+    rounds.push(ms); cur = next;
+  }
+  return rounds;
+}
+
+function renderSetup() {
+  $('setup-view').hidden = S.started; $('bracket-view').hidden = !S.started;
+  const list = $('p-list'); list.textContent = '';
+  S.players.forEach((p, i) => {
+    const li = el('li'); li.append(el('span', 'n', i + 1), el('span', 'nm', p.name), el('span', 'cls', p.cls || ''));
+    const x = el('button', null, '✕'); x.setAttribute('aria-label', 'remove'); x.onclick = () => { S.players.splice(i, 1); S.draw = null; save(); render(); };
+    li.append(x); list.append(li);
+  });
+  confirmButton($('p-clear-box'), T('clearAll'), () => { S.players = []; S.draw = null; save(); render(); }, !S.players.length);
+  const n = S.players.length, size = sizeFor(Math.max(n, 2));
+  $('draw-info').textContent = T('info', n, size, n >= 2 ? size - n : 0);
+  $('draw').disabled = n < 2; $('draw').textContent = S.draw ? T('redraw') : T('doDraw');
+  $('start').disabled = !S.draw; $('third').checked = S.third;
+  renderPairs(S.draw);
+}
+function renderPairs(slots, spinning) {
+  const box = $('pairs'); box.textContent = '';
+  if (!slots) return;
+  for (let i = 0; i < slots.length; i += 2) {
+    const a = pl(slots[i]), b = pl(slots[i + 1]), row = el('div', 'pair' + (spinning ? ' spin' : ''));
+    row.append(el('span', 'no', i / 2 + 1), el('span', 'p', a ? a.name : T('bye')), el('span', 'vs', T('vs')));
+    const pb = el('span', 'p' + (b ? '' : ' bye'), b ? b.name : (a ? T('bye') : ''));
+    if (!a) row.children[1].className = 'p bye';
+    row.append(pb); box.append(row);
+  }
+}
+function confirmButton(box, label, onYes, disabled) {
+  box.textContent = '';
+  const b = el('button', null, label); b.disabled = !!disabled;
+  b.onclick = () => {
+    box.textContent = ''; const w = el('span', 'confirm'); w.append(el('span', null, T('sure')));
+    const y = el('button', 'main', T('yes')), n = el('button', null, T('no'));
+    y.onclick = onYes; n.onclick = () => confirmButton(box, label, onYes, disabled);
+    w.append(y, n); box.append(w);
+  };
+  box.append(b);
+}
+function slotButton(m, side, R, r) {
+  const id = side === 'a' ? m.a : m.b, p = pl(id), b = el('button', 'slot');
+  if (!p) { b.classList.add('empty'); b.append(el('span', 'who', m.bye && r === 0 ? '—' : T('tbd'))); b.disabled = true; return b; }
+  const who = el('span', 'who'); who.append(el('span', null, p.name)); if (p.cls) { who.append(' '); who.append(el('span', 'cl', p.cls)); }
+  b.append(who);
+  if (m.w === id) b.classList.add('won'); else if (m.w) b.classList.add('lost');
+  if (m.bye || !m.a || !m.b) { b.disabled = true; return b; }
+  b.onclick = () => {
+    if (S.results[m.id] === id) delete S.results[m.id]; else S.results[m.id] = id;
+    clearAfter(m.id); save(); render();
+  };
+  return b;
+}
+// changing a result clears later results that no longer make sense
+function clearAfter() {
+  for (let pass = 0; pass < 6; pass++) {
+    const rs = bracket();
+    rs.forEach(ms => ms.forEach(m => { if (S.results[m.id] && S.results[m.id] !== m.a && S.results[m.id] !== m.b) delete S.results[m.id]; }));
+  }
+  const rs = bracket(), R = rs.length;
+  if (R >= 2) { const semis = rs[R - 2], losers = semis.map(m => m.w ? (m.w === m.a ? m.b : m.a) : null); if (S.thirdWinner && !losers.includes(S.thirdWinner)) S.thirdWinner = null; }
+}
+function renderBracket() {
+  const rs = bracket(), R = rs.length, box = $('bracket'); box.textContent = '';
+  let num = 0;
+  rs.forEach((ms, r) => {
+    const col = el('div', 'round'); col.append(el('h3', null, T('round', r, R)));
+    const slots = el('div', 'slots');
+    ms.forEach(m => {
+      const card = el('div', 'match');
+      if (!(m.bye)) card.append(el('span', 'num', T('match') + ' ' + (++num)));
+      card.append(slotButton(m, 'a', R, r), slotButton(m, 'b', R, r)); slots.append(card);
+    });
+    col.append(slots); box.append(col);
+  });
+  // third place
+  const tb = $('third-box'); tb.textContent = '';
+  let third = null;
+  if (S.third && R >= 2) {
+    const semis = rs[R - 2], losers = semis.map(m => m.w ? (m.w === m.a ? m.b : m.a) : null);
+    const w = el('div', 'round'); w.style.marginTop = '20px'; w.style.maxWidth = '280px';
+    w.append(el('h3', null, T('thirdTitle')));
+    const card = el('div', 'match');
+    losers.forEach(id => {
+      const p = pl(id), b = el('button', 'slot');
+      if (!p) { b.classList.add('empty'); b.disabled = true; b.append(el('span', 'who', T('tbd'))); }
+      else {
+        b.append(el('span', 'who', p.name));
+        if (S.thirdWinner === id) b.classList.add('won'); else if (S.thirdWinner) b.classList.add('lost');
+        b.disabled = !(losers[0] && losers[1]);
+        b.onclick = () => { S.thirdWinner = S.thirdWinner === id ? null : id; save(); render(); };
+      }
+      card.append(b);
+    });
+    w.append(card); tb.append(w); third = S.thirdWinner;
+  }
+  // champion
+  const ch = $('champ'); ch.textContent = '';
+  const fin = rs[R - 1][0];
+  if (fin.w) {
+    const runner = fin.w === fin.a ? fin.b : fin.a;
+    const c = el('div', 'champion'); c.append(el('div', 'crown', '🏆'), el('div', null, T('champion')), el('div', 'name', pl(fin.w).name));
+    const pod = el('div', 'podium'); pod.append(el('span', null, `${T('second')}: ${pl(runner)?.name || ''}`));
+    if (third) pod.append(el('span', null, `${T('thirdPlace')}: ${pl(third).name}`));
+    c.append(pod); ch.append(c);
+  }
+  confirmButton($('reset-box'), T('reset'), () => { S.started = false; S.draw = null; S.results = {}; S.thirdWinner = null; save(); render(); });
+}
+function render() {
+  document.documentElement.lang = S.lang;
+  document.querySelectorAll('[data-t]').forEach(e => { e.textContent = T(e.dataset.t); });
+  document.querySelectorAll('[data-ph]').forEach(e => { e.placeholder = T(e.dataset.ph); e.setAttribute('aria-label', T(e.dataset.ph)); });
+  document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === S.lang));
+  document.title = T('title');
+  if (S.started) { $('setup-view').hidden = true; $('bracket-view').hidden = false; renderBracket(); } else renderSetup();
+}
+function addPlayer(name, cls) { name = (name || '').trim(); if (!name) return; S.players.push({ id: uid(), name: name.slice(0, 60), cls: (cls || '').trim().slice(0, 12) }); S.draw = null; }
+$('p-add').onclick = () => { addPlayer($('p-name').value, $('p-class').value); $('p-name').value = ''; $('p-name').focus(); save(); render(); };
+$('p-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('p-add').click(); });
+$('p-class').addEventListener('keydown', e => { if (e.key === 'Enter') $('p-add').click(); });
+$('p-bulk-add').onclick = () => {
+  $('p-bulk').value.split('\n').forEach(line => { const [n, c] = line.split(/[,;\t]/); addPlayer(n, c); });
+  $('p-bulk').value = ''; save(); render();
+};
+$('third').onchange = e => { S.third = e.target.checked; save(); };
+$('draw').onclick = () => {
+  // a short shuffle animation, then the real draw
+  const btn = $('draw'); btn.disabled = true; let k = 0;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tick = () => {
+    renderPairs(makeDraw(), true);
+    if (++k < (reduce ? 1 : 16)) setTimeout(tick, 60 + k * 8);
+    else { S.draw = makeDraw(); S.results = {}; S.thirdWinner = null; save(); render(); }
+  };
+  tick();
+};
+$('start').onclick = () => { S.started = true; S.results = {}; S.thirdWinner = null; save(); render(); };
+$('print').onclick = () => window.print();
+document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { S.lang = b.dataset.lang; save(); render(); });
+render();
+</script>
+</body>
+</html>
