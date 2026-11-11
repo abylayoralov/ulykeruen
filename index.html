@@ -80,6 +80,13 @@
   .gate .link { justify-self: center; border: 0; color: #e8d6b8; text-decoration: underline; background: none; }
   .skip.mute { right: auto; left: 16px; }
   [hidden] { display: none !important; }
+  .topbar { position: fixed; z-index: 2; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+  .topbar button { pointer-events: auto; padding: 10px 18px; border-radius: 30px; box-shadow: 0 4px 16px rgba(0,0,0,.3); white-space: nowrap; }
+  .pill { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .asyk-msg { position: fixed; z-index: 3; left: 50%; top: 11%; transform: translateX(-50%); width: min(90vw, 560px); text-align: center; padding: 14px 20px; border-radius: 16px;
+    background: rgba(20,12,5,.84); color: #ffe9c4; font: 700 clamp(17px, 2.4vw, 24px)/1.3 "PT Serif", Georgia, serif; opacity: 0; transition: opacity .4s; pointer-events: none; }
+  .asyk-msg.on { opacity: 1; }
+  @media (max-width: 700px) { .topbar { top: calc(70px + env(safe-area-inset-top, 0px)); } }
   .lang { position: absolute; right: 14px; top: 16px; display: flex; gap: 2px; }
   .lang button { padding: 3px 7px; font-size: 12px; border-radius: 6px; }
   .lang button.on, #bot-levels button.on, .seg button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
@@ -136,6 +143,8 @@
   <button id="i-mute" class="skip mute">🔊</button>
 </div>
 <div class="hud" id="hud"><button id="menu-open" aria-label="Мәзір · Меню">☰</button><div class="chip" id="chip"></div></div>
+<div class="topbar" id="topbar"><div class="pill" id="clock" hidden></div><button id="asyk-btn" class="main" hidden></button></div>
+<div class="asyk-msg" id="asyk-msg"></div>
 <aside class="panel" id="panel">
   <button class="close" id="menu-close" aria-label="Жабу · Закрыть">✕</button>
   <h1>Ұлы Керуен</h1>
@@ -148,6 +157,7 @@
       <button id="b-undo" disabled data-i18n="undo"></button>
     </div>
     <div class="row"><button id="b-intro" data-i18n="intro"></button><button id="b-sound"></button></div>
+    <div class="row"><button id="b-names"></button><button id="b-clock"></button></div>
     <div class="row"><a href="tournament.html" style="flex:1;display:flex"><button style="flex:1" data-i18n="tour"></button></a></div>
     <h2 data-i18n="bot"></h2>
     <div class="row three" id="bot-levels">
@@ -205,14 +215,14 @@ const CITIES = [
 ];
 const TAGS = { '1,0': 'КЕРУЕН САРАЙ', '1,6': 'КЕРУЕН САРАЙ', '5,0': 'FONDACO', '5,6': 'FONDACO' };
 // Horizontal links present in each row (index = left column of the link); every vertical link is present.
-const HROW = [[0, 1, 2, 3, 4, 5], [1, 4], [0, 5], [], [0, 5], [1, 4], [0, 1, 2, 3, 4, 5]];
+const HROW = [[0, 1, 2, 3, 4, 5], [1, 4], [0, 5], [0, 1, 2, 3, 4, 5], [0, 5], [1, 4], [0, 1, 2, 3, 4, 5]];
 // Diagonals between row r and r+1 in the square of columns c..c+1:
 // '\' joins (r,c)-(r+1,c+1), '/' joins (r,c+1)-(r+1,c), 'X' both, '' none.
 const DIAG = [
   ['\\', '', '/', '\\', '', '/'],
   ['/', 'X', '/', '\\', 'X', '\\'],
   ['X', '/', 'X', 'X', '\\', '\\'],
-  ['\\', '\\', 'X', 'X', '/', '/'],
+  ['\\', '\\', 'X', 'X', '/', 'X'],
   ['\\', 'X', '\\', '/', 'X', '/'],
   ['/', '', '\\', '/', '', '\\'],
 ];
@@ -231,16 +241,26 @@ const SIDE = { b: 'Қоңыр', w: 'Ақ' };
 const I18N = {
   kk: {
     tour: '🏆 Турнир және жеребе',
+    namesOn: '🏷 Атаулар: бар', namesOff: '🏷 Атаулар: жоқ', asykBtn: 'Асық ату — кім бастайды?', asykTie: 'Тең түсті — қайта атамыз',
+    asykRes: (w, b, s) => `Асық: Ақ — ${w}, Қоңыр — ${b}. Бастайды: ${s}`,
+    clockBtn: '⏱ 45 минут', clockStop: '⏱ Уақытты алу', stages: ['1-партия', '2-партия', 'Қосымша 10 минут', '50 жүріс'], movesLeft: n => `${n} жүріс қалды`,
+    draw2: 'Уақыт бітті, тең. 2-партия басталады', draw10: 'Тағы тең. 10 минут беріледі', draw50: 'Тағы тең. 50 жүріс беріледі',
+    byCount: s => `Фигуралар саналды. Жеңімпаз: ${s}`, evenEnd: 'Фигуралар саналды: тең нәтиже',
+    longOver: n => `${n}: алыс жүріс лимиті бітті, енді тек бір қадамнан жүреді`,
     newGame: 'Жаңа ойын', sure: 'Нақты ма? Тағы басыңыз', undo: 'Жүрісті қайтару', intro: '▶ Кіріспе', sound: '🔊 Дыбыс', noSound: '🔇 Дыбыссыз',
     view: 'Көрініс', top: 'Жоғарыдан', online: 'Желіде ойнау', bot: 'Компьютермен ойнау', moves: 'Жүрістер', rules: 'Ереже',
     tableNo: 'Үстел нөмірі', sit: 'Үстелге отыру', leave: 'Үстелден шығу', createTable: 'Үстел ашу', join: 'Қосылу',
     offline: 'Желіде ойнау ойын сайтында және claude.ai нұсқасында жұмыс істейді.',
     rulesHtml: `<li><b>Мақсат</b> — керуен жинау: өзіңнің 7 фигураңды бір сызыққа тізу — тігінен, ұзын диагональ бойымен немесе көлденеңінен (ортаңғы қатардан бастап қарсылас жағына қарай, өз үш қатарыңда емес) және қарсыласқа керуенін жинауға жол бермеу.</li>
-      <li><b>Керуенбасы</b> ферзь сияқты жүреді — сызықтар бойымен кез келген қашықтыққа.</li>
-      <li><b>Қарауылдың</b> ойын бойы 3 алыс жүрісі бар, <b>кеменің</b> — 1; қалған уақытта бір қадамнан жүреді.</li>
+      <li>Барлық фигуралар <b>оңға, солға, алға, артқа</b> жүре алады, себебі бұл — стратегиялық ойын. Ұрыс, соғу, жеп қою, өлтіру жоқ.</li>
+      <li><b>Керуенбасы</b> ферзь сияқты жүреді — сызықтар бойымен кез келген қашықтыққа, шектеусіз; біртіндеп те жүре алады.</li>
+      <li><b>Қарауылдың</b> ойын бойы 3 алыс жүрісі бар; қалған уақытта біртіндеп жүреді.</li>
+      <li><b>Желкенді кеме</b> ойын бойы бір рет алыс жүре алады; қалған уақытта біртіндеп жүреді.</li>
       <li><b>Аруана, бактриан, дромедар, нар</b> — сызық бойымен бір қадамнан.</li>
-      <li>Тек бос қалаға жүруге болады, фигуралар бір-бірін ұрмайды және үстінен секірмейді.</li>`,
-    note: 'Фигураны басыңыз — ол бара алатын қалалар жарықталады. Тақтаны айналдыруға және жақындатуға болады. Алдымен Ақтар жүреді.',
+      <li>Тек бос қалаға жүруге болады, фигуралар бір-бірін ұрмайды және үстінен секірмейді.</li>
+      <li><b>Кім бастайды</b> — асық атылады: Алшы, Тәйкі, Бүк, Шік, Омпы, Сомпы.</li>
+      <li><b>Уақыт</b> — партияға 45 минут. Тең болса — екінші партия; тағы тең болса — 10 минут; одан кейін 50 жүріс; соңында фигуралар саналады, жеңіске кім жақын болса — сол жеңімпаз.</li>`,
+    note: 'Фигураны басыңыз — ол бара алатын қалалар жарықталады. Тақтаны айналдыруға және жақындатуға болады. Кім бастайтынын асық шешеді; асық атылмаса, Ақтар бастайды.',
     turnN: (n, s) => `${n}-жүріс · кезек: ${s}`, won: s => `Жеңіс: ${s}! Керуен жиналды.`,
     longLeft: (q, k) => `алыс жүріс: қарауыл ${q}/3, кеме ${k}/1`, longMove: ' (алыс жүріс)',
     caravan: (s, l) => `★ ${s} керуенін ${l} жинады!`, row: 'көлденеңінен', col: 'тігінен', diag: 'диагональ бойымен',
@@ -266,16 +286,26 @@ const I18N = {
   },
   ru: {
     tour: '🏆 Турнир и жеребьёвка',
+    namesOn: '🏷 Названия: есть', namesOff: '🏷 Названия: нет', asykBtn: 'Бросить асык — кто начнёт?', asykTie: 'Поровну — бросаем ещё раз',
+    asykRes: (w, b, s) => `Асык: Ақ — ${w}, Қоңыр — ${b}. Начинают: ${s}`,
+    clockBtn: '⏱ 45 минут', clockStop: '⏱ Убрать время', stages: ['1-я партия', '2-я партия', 'Ещё 10 минут', '50 ходов'], movesLeft: n => `осталось ходов: ${n}`,
+    draw2: 'Время вышло, ничья. Начинается 2-я партия', draw10: 'Снова ничья. Даётся 10 минут', draw50: 'Снова ничья. Даётся 50 ходов',
+    byCount: s => `Фигуры посчитаны. Победитель: ${s}`, evenEnd: 'Фигуры посчитаны: ничья',
+    longOver: n => `${n}: лимит дальних ходов исчерпан, теперь только по одному шагу`,
     newGame: 'Новая партия', sure: 'Точно? Ещё раз', undo: 'Отменить ход', intro: '▶ Заставка', sound: '🔊 Звуки', noSound: '🔇 Без звуков',
     view: 'Вид', top: 'Сверху', online: 'Игра по сети', bot: 'Против компьютера', moves: 'Ходы', rules: 'Правила',
     tableNo: 'Номер стола', sit: 'Сесть за стол', leave: 'Выйти из-за стола', createTable: 'Создать стол', join: 'Подключиться',
     offline: 'Игра по сети работает на сайте игры и в версии на claude.ai.',
     rulesHtml: `<li><b>Цель</b> — собрать караван: все 7 своих фигур в одну линию — по вертикали, по длинной диагонали или поперёк доски (от среднего ряда и дальше, не на своих трёх рядах), не давая сопернику собрать свой.</li>
-      <li><b>Керуенбасы</b> ходит как ферзь — по линиям на любое расстояние.</li>
-      <li><b>Қарауыл</b> — 3 дальних хода за партию, <b>кеме</b> — 1; в остальное время по одному шагу.</li>
+      <li>Все фигуры могут ходить <b>вправо, влево, вперёд и назад</b>, потому что это стратегическая игра. Боя, съедания и убийства фигур нет.</li>
+      <li><b>Керуенбасы</b> ходит как ферзь — по линиям на любое расстояние, без ограничений; может ходить и по одному шагу.</li>
+      <li><b>Қарауыл</b> — 3 дальних хода за партию; в остальное время по одному шагу.</li>
+      <li><b>Желкенді кеме</b> — один дальний ход за партию; в остальное время по одному шагу.</li>
       <li><b>Аруана, бактриан, дромедар, нар</b> — по одному шагу вдоль линии.</li>
-      <li>Ходить можно только на свободный город; фигуры не бьют друг друга и не перепрыгивают.</li>`,
-    note: 'Нажмите фигуру — подсветятся города, куда она может пойти. Доску можно вращать и приближать. Первыми ходят белые.',
+      <li>Ходить можно только на свободный город; фигуры не бьют друг друга и не перепрыгивают.</li>
+      <li><b>Кто начинает</b> — бросают асык: Алшы, Тәйкі, Бүк, Шік, Омпы, Сомпы.</li>
+      <li><b>Время</b> — 45 минут на партию. При ничьей — вторая партия; снова ничья — 10 минут; затем 50 ходов; в конце считают фигуры, побеждает тот, кто ближе к победе.</li>`,
+    note: 'Нажмите фигуру — подсветятся города, куда она может пойти. Доску можно вращать и приближать. Кто начинает, решает асык; если его не бросать, начинают белые.',
     turnN: (n, s) => `Ход ${n} · ходят ${s}`, won: s => `Победа: ${s}! Караван собран.`,
     longLeft: (q, k) => `дальних ходов: қарауыл ${q}/3, кеме ${k}/1`, longMove: ' (дальний ход)',
     caravan: (s, l) => `★ ${s} собрали караван ${l}!`, row: 'поперёк доски', col: 'по вертикали', diag: 'по диагонали',
@@ -1357,6 +1387,7 @@ function showHints(cells) {
 const LONG = { 0: Infinity, 3: 3, 6: 1 };
 let pieces = [], objs = {}, history = [], log = [], selected = null, tweens = [];
 let turn = 'w', used = { b: { 3: 0, 6: 0 }, w: { 3: 0, 6: 0 } }, winner = null, winLine = null;
+let asyk = null, clock = null;      // the throw that decided who starts; the tournament clock
 const STORE = 'uly-keruen-3d-v2';
 const EDGE = new Set(EDGES.map(([a, b]) => a + '|' + b).concat(EDGES.map(([a, b]) => b + '|' + a)));
 const hasEdge = (a, b) => EDGE.has(a + '|' + b);
@@ -1628,15 +1659,15 @@ function tweenTo(o, to) {
   const from = o.position.clone(), lift = Math.min(1, from.distanceTo(to) * 0.25) + 0.25;
   tweens.push({ o, from, to: to.clone(), t0: performance.now(), dur: 450, lift });
 }
-const snapshot = () => JSON.stringify({ pieces, turn, used, winner, log });
-function restore(s) { const d = JSON.parse(s); pieces = d.pieces; turn = d.turn; used = d.used; winner = d.winner; log = d.log; }
+const snapshot = () => JSON.stringify({ pieces, turn, used, winner, log, asyk, clock });
+function restore(s) { const d = JSON.parse(s); pieces = d.pieces; turn = d.turn; used = d.used; winner = d.winner; log = d.log; asyk = d.asyk || null; clock = d.clock || null; }
 function save() { try { localStorage.setItem(STORE, JSON.stringify({ state: snapshot(), history })); } catch (e) {} }
 function load() {
   try { const d = JSON.parse(localStorage.getItem(STORE)); if (d && d.state) { restore(d.state); history = d.history || []; return true; } } catch (e) {}
   return false;
 }
 function newGame() {
-  pieces = startPieces(); history = []; log = []; turn = 'w'; used = { b: { 3: 0, 6: 0 }, w: { 3: 0, 6: 0 } }; winner = null;
+  pieces = startPieces(); history = []; log = []; turn = 'w'; used = { b: { 3: 0, 6: 0 }, w: { 3: 0, 6: 0 } }; winner = null; asyk = null; clock = null;
   select(null); placeAll(true); save(); ui();
 }
 
@@ -1646,6 +1677,7 @@ function select(p) {
   if (!p) { selRing.visible = false; showHints([]); return; }
   selRing.visible = true; selRing.position.copy(pos(p.cell)); selRing.position.y = TOP + 0.05; sfx('select'); pickSound(objs[p.id]);
   showHints([...legal.keys()]);
+  if (LONG[p.t] < Infinity && longLeft(p) <= 0 && !(BOT.on && p.s === BOT.side)) flash(T('longOver', TYPES[p.t].name), 3000);
 }
 function move(p, cell) {
   if (net.code && mySide() !== p.s) return;
@@ -1665,26 +1697,162 @@ function move(p, cell) {
   select(null); walkPath(objs[p.id], path, homeYaw(p.s)); startSound(objs[p.id]);
   if (net.code) pushMove(p.id, from, cell); else save();
   ui();
+  if (long && LONG[p.t] !== Infinity && longLeft(p) <= 0 && !winner) flash(T('longOver', TYPES[p.t].name), 3000);
   if (BOT.on) scheduleBot();
 }
 function undo() {
   if (!history.length) return;
-  restore(history.pop());
+  const c = clock; restore(history.pop()); clock = c;
   select(null); placeAll(true); save(); ui();
 }
 
 const statusEl = document.getElementById('status'), logEl = document.getElementById('log');
-function flash(text) { statusEl.textContent = text; clearTimeout(flash.t); flash.t = setTimeout(ui, 1400); }
+function flash(text, ms = 1400) { statusEl.textContent = text; clearTimeout(flash.t); flash.t = setTimeout(ui, ms); }
 function ui() {
-  statusEl.textContent = winner ? T('won', SIDE[winner]) : T('turnN', Math.floor(log.length / 2) + 1, SIDE[turn]);
+  statusEl.textContent = winner ? (clock && clock.stage === 4 ? T('byCount', SIDE[winner]) : T('won', SIDE[winner])) : T('turnN', Math.floor(log.length / 2) + 1, SIDE[turn]);
   statusEl.style.color = winner ? 'var(--accent)' : '';
   document.getElementById('counts').innerHTML = ['w', 'b'].map(s =>
-    `<div><b>${SIDE[s]}</b> — ${T('longLeft', 3 - used[s][3], 1 - used[s][6])}</div>`).join('');
+    `<div><b>${SIDE[s]}</b> — ${T('longLeft', 3 - used[s][3], 1 - used[s][6])}</div>`).join('') + (asyk ? `<div>${asykText()}</div>` : '');
   logEl.innerHTML = log.map(l => `<li>${l}</li>`).join('');
   logEl.scrollTop = logEl.scrollHeight;
   document.getElementById('b-undo').disabled = !history.length;
   if (net.code) renderSeats();
+  asykBtn.textContent = T('asykBtn');
+  asykBtn.hidden = !!(winner || log.length || asyk || asykA || (net.code && mySide() !== 'w'));
+  document.getElementById('b-names').textContent = showNames ? T('namesOn') : T('namesOff');
+  document.getElementById('b-clock').textContent = clock ? T('clockStop') : T('clockBtn');
+  clockTick();
 }
+
+// ---------- Who starts: the asyk throw ----------
+// Both sides throw a knucklebone onto the middle of the board. The author lists the positions in this order and
+// the earlier one is taken as the stronger; equal throws are repeated. The chances follow how a real asyk lands.
+const ASYK = ['Алшы', 'Тәйкі', 'Бүк', 'Шік', 'Омпы', 'Сомпы'], ASYK_P = [0.36, 0.36, 0.1, 0.1, 0.04, 0.04], ASYK_S = 0.3;
+const ASYK_H = [0.74, 0.74, 0.64, 0.64, 1.25, 1.25];
+const asykBtn = document.getElementById('asyk-btn'), asykMsgEl = document.getElementById('asyk-msg');
+const asykMat = { w: new THREE.MeshStandardMaterial({ color: 0xeadcbc, roughness: 0.5 }), b: new THREE.MeshStandardMaterial({ color: 0x8a4a22, roughness: 0.5 }) };
+let asykA = null, asykG = null;
+const asykText = () => T('asykRes', ASYK[asyk[0]], ASYK[asyk[1]], SIDE[asyk[0] < asyk[1] ? 'w' : 'b']);
+function rollAsyk() { let x = Math.random(); for (let i = 0; i < 5; i++) { x -= ASYK_P[i]; if (x < 0) return i; } return 5; }
+function asykGeo() {                                        // long knuckle with a waist, a knob on top, a hollow underneath
+  const g = new THREE.SphereGeometry(1, 64, 40), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), waist = 1 - 0.24 * Math.exp(-x * x * 7);
+    const pit = Math.exp(-(x * x + z * z) * 5), side = Math.exp(-((x - 0.25 * y) ** 2 * 9 + y * y * 3));
+    p.setXYZ(i, x * 1.25, y * 0.74 * waist + (y > 0 ? 0.14 : 0.3) * pit, z * 0.64 * waist + (z > 0 ? -0.2 : 0.06) * side);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+function asykRest(r) {                                      // the orientation in which each position lies
+  const q = new THREE.Quaternion(), X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);
+  if (r === 0) q.setFromAxisAngle(X, Math.PI); else if (r === 2) q.setFromAxisAngle(X, -Math.PI / 2); else if (r === 3) q.setFromAxisAngle(X, Math.PI / 2);
+  else if (r === 4) q.setFromAxisAngle(Z, Math.PI / 2); else if (r === 5) q.setFromAxisAngle(Z, -Math.PI / 2);
+  return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6.28).multiply(q);
+}
+function asykNote(text, ms) { asykMsgEl.textContent = text; asykMsgEl.classList.add('on'); clearTimeout(asykNote.t); asykNote.t = setTimeout(() => asykMsgEl.classList.remove('on'), ms); }
+function throwAsyk() {
+  if (asykA || winner || log.length || asyk || intro || victory || (net.code && mySide() !== 'w')) return;
+  select(null); asykG ||= asykGeo();
+  const make = (s, r, x, z0) => {
+    const m = new THREE.Mesh(asykG, asykMat[s]); m.castShadow = true; m.scale.setScalar(ASYK_S); scene.add(m);
+    m.userData = { x, z0, y: TOP + 0.02 + ASYK_H[r] * ASYK_S, end: asykRest(r), axis: new THREE.Vector3(Math.random() - 0.5, 0.4, Math.random() - 0.5).normalize(), spin: 16 + Math.random() * 8 };
+    return m;
+  };
+  const w = rollAsyk(), b = rollAsyk();
+  asykA = { t0: performance.now(), w, b, hit: 0, done: false, meshes: [make('w', w, 0.62, -5.5), make('b', b, -0.62, 5.5)] };
+  ui();
+}
+const asykQ = new THREE.Quaternion();
+function runAsyk(now) {
+  if (!asykA || asykA.done) return;
+  const e = Math.min(1, (now - asykA.t0) / 1400), left = 1 - e, near = 1 - left * left;
+  for (const m of asykA.meshes) {
+    const d = m.userData;
+    m.position.set(d.x, d.y + 2 * left * left * Math.abs(Math.cos(e * Math.PI * 2.5)), d.z0 * (1 - near));
+    m.quaternion.copy(asykQ.setFromAxisAngle(d.axis, d.spin * left * left)).multiply(d.end);
+  }
+  const hits = [0.2, 0.6, 1];
+  if (asykA.hit < 3 && e >= hits[asykA.hit]) { asykA.hit++; sfx('select'); }
+  if (e < 1) return;
+  const { w, b, meshes } = asykA;
+  asykA.done = true;
+  if (w === b) {
+    asykNote(T('asykTie'), 1300);
+    setTimeout(() => { meshes.forEach(m => scene.remove(m)); asykA = null; throwAsyk(); }, 1400);
+    return;
+  }
+  asykA = null; asyk = [w, b]; turn = w < b ? 'w' : 'b';
+  asykNote(asykText(), 3800);
+  setTimeout(() => meshes.forEach(m => scene.remove(m)), 3800);
+  save(); ui(); pushState();
+  if (BOT.on) scheduleBot();
+}
+asykBtn.onclick = throwAsyk;
+
+// ---------- Tournament clock ----------
+// 45 minutes; on a draw a second game, then 10 more minutes, then 50 moves, then whoever is closer to a caravan wins.
+const clockEl = document.getElementById('clock');
+const MIN = 60000;
+function clockTick() {
+  if (!clock || winner) { clockEl.hidden = true; return; }
+  clockEl.hidden = false;
+  if (clock.stage === 3) {
+    const left = 50 - (log.length - clock.at);
+    clockEl.textContent = `${T('stages')[3]} · ${T('movesLeft', Math.max(0, left))}`;
+    if (left <= 0) closestWins();
+    return;
+  }
+  const ms = clock.end - Date.now();
+  if (ms <= 0) { nextStage(); return; }
+  const s = Math.ceil(ms / 1000);
+  clockEl.textContent = `${T('stages')[clock.stage]} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+function nextStage() {
+  const st = clock.stage;
+  if (st === 0) { newGame(); clock = { stage: 1, end: Date.now() + 45 * MIN }; asykNote(T('draw2'), 4000); if (BOT.on) setTimeout(throwAsyk, 900); }
+  else if (st === 1) { clock = { stage: 2, end: Date.now() + 10 * MIN }; asykNote(T('draw10'), 4000); }
+  else { clock = { stage: 3, at: log.length }; asykNote(T('draw50'), 4000); }
+  save(); ui();
+}
+function closestWins() {
+  const st = botState(), cw = caravanCost(st, 'w'), cb = caravanCost(st, 'b');
+  select(null);
+  if (cw === cb) { clock = null; asykNote(T('evenEnd'), 5000); winner = null; }
+  else { winner = cw < cb ? 'w' : 'b'; clock = { stage: 4 }; asykNote(T('byCount', SIDE[winner]), 6000); }
+  save(); ui();
+}
+document.getElementById('b-clock').onclick = () => { clock = clock ? null : { stage: 0, end: Date.now() + 45 * MIN }; save(); ui(); pushState(); };
+setInterval(() => { if (clock) clockTick(); }, 500);
+
+// ---------- Figure names on the board ----------
+const labels = {}, labelDir = new THREE.Vector3();
+let showNames = true;
+try { showNames = localStorage.getItem('uly-keruen-names') !== '0'; } catch (e) {}
+function nameSprite(name) {
+  const c = document.createElement('canvas'); c.width = 400; c.height = 90;
+  const g = c.getContext('2d'); g.font = '700 50px "PT Serif", Georgia, serif';
+  const w = Math.min(392, g.measureText(name).width + 44);
+  g.fillStyle = 'rgba(24,14,6,.84)'; g.beginPath(); g.roundRect((400 - w) / 2, 6, w, 78, 22); g.fill();
+  g.fillStyle = '#ffe9c4'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(name, 200, 48, 370);
+  const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map, depthTest: false, transparent: true, toneMapped: false }));
+  s.scale.set(1.16, 0.26, 1); s.renderOrder = 5;
+  return s;
+}
+function updateLabels() {
+  const hide = !showNames || intro || victory;
+  document.getElementById('topbar').style.display = intro || victory ? 'none' : '';
+  camera.getWorldDirection(labelDir); labelDir.y = 0; labelDir.normalize();
+  for (const [id, s] of Object.entries(labels)) {
+    s.visible = !hide && objs[id].visible;
+    if (s.visible) s.position.copy(objs[id].position).addScaledVector(labelDir, -0.36).setY(TOP + 0.1);
+  }
+}
+document.getElementById('b-names').onclick = () => {
+  showNames = !showNames; try { localStorage.setItem('uly-keruen-names', showNames ? '1' : '0'); } catch (e) {}
+  ui();
+};
 
 // ---------- Picking ----------
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
@@ -1700,7 +1868,7 @@ function pick(e) {
   return o.userData.pid ? { piece: pieces.find(p => p.id === o.userData.pid) } : { cell: o.userData.cell };
 }
 function clickPiece(p) {
-  if (winner) return;
+  if (winner || asykA) return;
   if (BOT.on) {
     if (p.s === BOT.side) { if (!selected || selected.s === BOT.side) flash(T('botPiece')); else flash(T('busy')); return; }
     if (turn === BOT.side) { flash(T('thinking')); return; }
@@ -1780,9 +1948,10 @@ function sunset(on) {
 }
 const pulse = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.035, 10, 48), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true }));
 pulse.rotation.x = -Math.PI / 2; pulse.visible = false; scene.add(pulse);
-// Story beats, in seconds of the soundtrack. The white caravan enters from the east along the Asian row,
-// the brown one from the west along the European row; each figure stops on its own start city.
-const CARAVANS = { w: { t0: 10.1, v: 0.78, z: -3, entry: 3.9, dir: -1 }, b: { t0: 20.3, v: 1.0, z: 3, entry: -3.9, dir: 1 } };
+// Story beats, in seconds of the soundtrack. Like volleyball teams the two caravans come in from opposite sides along
+// the two rows next to the middle line, stop, turn to each other and bow, then walk back to their own halves.
+const CARAVANS = { w: { t0: 10.1, v: 0.78, z: -3, line: -1, entry: 3.9, dir: -1 }, b: { t0: 10.1, v: 0.78, z: 3, line: 1, entry: -3.9, dir: 1 } };
+const BOW = [21.2, 22.8], BACK = 24.2;
 const BEATS = [
   [6.5, () => mark(k(0, 0))], [9.2, () => mark(k(6, 6))],
   [15.2, () => mark(k(2, 4))], [16.3, () => mark(k(2, 3))], [17.4, () => mark(k(2, 6))], [18.5, () => mark(k(2, 5))],
@@ -1816,20 +1985,23 @@ function endIntro() {
   introEl.style.display = 'none'; panelEl.style.display = hudEl.style.display = '';
   sunset(false); controls.enabled = true; controls.target.set(0, 0, 0); goView('b'); fadeMusic();
 }
-// Each figure of a caravan walks in single file from the board edge and stops on its own city,
-// then turns to face the opponent.
+// Each figure of a caravan walks in single file from the board edge and stops in its own column at the middle line,
+// faces the opponent, bows, and at the end walks back to its start city.
 function caravan(s, T) {
   const C = CARAVANS[s];
   introCast[s].forEach((o, t) => {
     const col = s === 'w' ? t : 6 - t, dist = Math.abs(col - 3 - C.entry);
     const run = C.v * (T - C.t0) - t * GAP, prog = Math.min(dist, Math.max(0, run));
+    const back = Math.min(1, Math.max(0, (T - BACK - t * 0.08) / 2.9)), goingBack = back > 0 && back < 1;
+    const bow = T > BOW[0] && T < BOW[1] ? Math.sin(Math.PI * (T - BOW[0]) / (BOW[1] - BOW[0])) : 0;
     o.visible = run > 0;
-    o.position.set(C.entry + C.dir * prog, TOP + 0.04, C.z);
+    o.position.set(C.entry + C.dir * prog, TOP + 0.04 + bow * 0.05, C.line + (C.z - C.line) * back);
     o.scale.setScalar(0.95 * Math.min(1, Math.max(0, run) / 0.35));
     const walking = run > 0 && prog < dist;
-    o.userData.walking = walking ? 1 : 0;
+    o.userData.walking = walking || goingBack ? 1 : 0;
+    o.rotation.z = -0.24 * bow;
     if (walking) o.rotation.y = C.dir > 0 ? 0 : Math.PI;
-    else if (run > 0) o.rotation.y += angDiff(o.rotation.y, homeYaw(s)) * 0.08;
+    else if (run > 0) o.rotation.y += angDiff(o.rotation.y, homeYaw(s) + (goingBack ? Math.PI : 0)) * 0.08;
   });
 }
 const lead = s => introCast[s][0].position;
@@ -1848,7 +2020,7 @@ function runIntro(now) {
     intro.cap = cap; capEl.classList.remove('on');
     setTimeout(() => { if (!intro) return; capEl.querySelector('.kk').textContent = CAPS[cap][1]; capEl.querySelector('.ru').textContent = CAPS[cap][2]; capEl.classList.add('on'); }, 350);
   }
-  // camera: wide establishing orbit → glide Nara to Rome → follow the white caravan → follow the brown one → rise for the title
+  // camera: wide establishing orbit → glide Nara to Rome → follow the teams coming in → along the middle line for the bow → rise for the title
   let camTo, look, k1 = 0.035;
   if (T < 6.3) {
     const a = 0.9 - T * 0.07;
@@ -1856,11 +2028,11 @@ function runIntro(now) {
   } else if (T < 10.1) {
     const q = (T - 6.3) / 3.8; look = pos(k(0, 0)).lerp(pos(k(6, 6)), q).setY(0.5);
     camTo = look.clone().add(V(-2.6, 2.4, 2.2)); k1 = 0.05;
-  } else if (T < 20.3) {
+  } else if (T < 19.5) {
     look = lead('w').clone().add(V(-0.6, 0.4, 0)); camTo = look.clone().add(V(-2.4, 1.4, 2.6));
     if (T > 14.8 && T < 19.5) { look = V(1.2, 0.4, -1.6); camTo = V(-1.2, 2.6, 1.6); }
-  } else if (T < 26.0) {
-    look = lead('b').clone().add(V(0.6, 0.4, 0)); camTo = look.clone().add(V(2.4, 1.4, -2.6));
+  } else if (T < BACK) {
+    look = V(0.4, 0.35, 0); camTo = V(6.8, 2.3, 0.01);
   } else {
     look = V(0, 0, 0.5); camTo = V(VIEWS.b[0] * 1.05, VIEWS.b[1] * 1.15, VIEWS.b[2] * 1.05); k1 = 0.025;
   }
@@ -1946,6 +2118,7 @@ function frame_(now) {
     }
     controls.update();
   }
+  runAsyk(now); updateLabels();
   selRing.material.color.setHSL(0.45, 0.85, 0.5 + 0.12 * Math.sin(now / 250));
   animateWorld(now, dt);
   renderer.render(scene, camera);
@@ -1962,7 +2135,7 @@ fit();
 // confirm on the button itself (embedded browsers block confirm())
 document.getElementById('b-new').onclick = e => {
   const b = e.currentTarget;
-  if (!log.length || b.dataset.armed) { delete b.dataset.armed; b.textContent = T('newGame'); if (net.code) newOnlineGame(); else { newGame(); if (BOT.on && BOT.side === 'w') scheduleBot(); } return; }
+  if (!log.length || b.dataset.armed) { delete b.dataset.armed; b.textContent = T('newGame'); if (net.code) newOnlineGame(); else { newGame(); if (BOT.on) setTimeout(throwAsyk, 900); } return; }
   b.dataset.armed = '1'; b.textContent = T('sure');
   setTimeout(() => { delete b.dataset.armed; b.textContent = T('newGame'); }, 3000);
 };
@@ -1977,7 +2150,7 @@ document.getElementById('p-host').onclick = p2pHost;
 document.getElementById('p-join').onclick = p2pJoin;
 document.getElementById('p-leave').onclick = () => { p2pReset(); nEl('p-turn').textContent = ''; p2pStatus(T('p2pHint')); if (!load()) pieces = startPieces(); select(null); placeAll(true); ui(); };
 document.getElementById('v-board').onclick = endVictory;
-document.getElementById('v-new').onclick = () => { endVictory(); if (net.code) newOnlineGame(); else newGame(); };
+document.getElementById('v-new').onclick = () => { endVictory(); if (net.code) newOnlineGame(); else { newGame(); if (BOT.on) setTimeout(throwAsyk, 900); } };
 document.getElementById('n-leave').onclick = () => leaveTable();
 document.getElementById('b-sound').onclick = e => { sfxOn = !sfxOn; e.currentTarget.textContent = sfxOn ? T('sound') : T('noSound'); };
 document.getElementById('b-intro').onclick = () => { startIntro(); playMusic(); };
@@ -2051,18 +2224,26 @@ function applyRemote(d) {
   const st = JSON.parse(d.state);
   const m = d.move;
   if (m && prev === d.rev - 1 && m.by !== net.me) {         // the opponent's move: walk it here too
-    const p = pieces.find(x => x.id === m.id), o = objs[m.id];
+    const p = pieces.find(x => x.id === m.id), o = objs[m.id], before = p && used[p.s][p.t];
     restore(JSON.stringify(st));
     if (p && o) {
       const [r1, c1] = rc(m.from), [r2, c2] = rc(m.to), n = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1)), path = [];
       for (let i = 1; i <= n; i++) path.push(pos(k(r1 + Math.sign(r2 - r1) * i, c1 + Math.sign(c2 - c1) * i)).setY(TOP + 0.04));
       walkPath(o, path, homeYaw(m.id[0])); startSound(o);
       if (winner) { const L = caravanLine(winner); if (L) setTimeout(() => startVictory(winner, L), 1000 + 900 * n); }
+      if (LONG[p.t] < Infinity && used[p.s][p.t] !== before && longLeft(p) <= 0) { ui(); flash(T('longOver', TYPES[p.t].name), 3000); return; }
     }
   } else if (!(m && m.by === net.me && prev === d.rev - 1)) {  // a jump (joining, new game): place everything
     restore(JSON.stringify(st)); select(null); placeAll(true);
   }
   ui();
+}
+async function pushState() {
+  if (!net.code) return;
+  net.rev += 1;
+  if (net.p2p) { p2pSend({ state: snapshot(), rev: net.rev, move: null }); return; }
+  try { await net.ref.set({ state: snapshot(), seats: net.seats, rev: net.rev, move: null }); }
+  catch (e) { netError(e); }
 }
 async function pushMove(id, from, to) {
   if (!net.code) return;
@@ -2333,7 +2514,7 @@ function startBotGame() {
   if (net.p2p) p2pReset(); if (net.code) leaveTable(true);
   BOT.on = true; BOT.side = BOT.human === 'w' ? 'b' : 'w';
   newGame(); goView(BOT.human); botStatus();
-  if (BOT.side === 'w') scheduleBot();
+  setTimeout(throwAsyk, 900);
 }
 
 // ---------- Start ----------
@@ -2342,7 +2523,7 @@ function startBotGame() {
   buildDiscs();
   await loadFigures();
   if (!load()) pieces = startPieces();
-  for (const p of pieces) { const o = makePiece(p.s, p.t); o.userData.pid = p.id; scene.add(o); objs[p.id] = o; }
+  for (const p of pieces) { const o = makePiece(p.s, p.t); o.userData.pid = p.id; scene.add(o); objs[p.id] = o; scene.add(labels[p.id] = nameSprite(TYPES[p.t].name)); }
   placeAll(false);
   addBazaarLife();
   // a narrow (portrait) screen needs the camera further back to fit the board
