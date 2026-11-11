@@ -906,7 +906,7 @@ const panel = new THREE.Mesh(new THREE.BoxGeometry(2 * H, TOP, 2 * H),
 panel.position.y = TOP / 2; panel.receiveShadow = true; scene.add(panel);
 // the fold of the travel case across the middle
 const fold = new THREE.Mesh(new THREE.BoxGeometry(2 * H, 0.004, 0.018), new THREE.MeshStandardMaterial({ color: 0x120603 }));
-fold.position.set(0, TOP + 0.002, 0.5); scene.add(fold);
+fold.position.set(0, TOP + 0.002, 0); scene.add(fold);
 
 const inlayMat = new THREE.MeshStandardMaterial({ color: 0xf1cf92, roughness: 0.45 });
 for (const [a, b] of EDGES) {
