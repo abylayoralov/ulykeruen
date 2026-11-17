@@ -1,0 +1,2551 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta name="robots" content="noindex">
+<script>
+(function () {                    // temporary link: after this moment the page shows a closed notice only
+  if (Date.now() < Date.parse('2026-11-20T00:00:00+05:00')) return;
+  window.stop();
+  document.documentElement.innerHTML = '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Ұлы Керуен</title></head>'
+    + '<body style="margin:0;min-height:100vh;display:grid;place-content:center;text-align:center;background:#2a1708;color:#ffe9c4;font:20px/1.5 Georgia,serif;padding:24px">'
+    + '<h1 style="margin:0 0 12px">Ұлы Керуен</h1><p>Мектеп турнирінің сілтемесі жабылды.<br>Ссылка школьного турнира закрыта.</p></body>';
+})();
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ұлы Керуен</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=PT+Serif:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --panel: rgba(255, 250, 242, .92); --ink: #2b2118; --muted: #7a6a58; --line: #e2d6c3;
+    --accent: #9a5b2e; --accent-ink: #fff; --bg: #e9e4da;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --panel: rgba(34, 28, 22, .92); --ink: #f1e7d8; --muted: #a8977f; --line: #3a3027;
+      --accent: #d08a4f; --accent-ink: #1a120b; --bg: #1b1713;
+    }
+  }
+  :root[data-theme="dark"] {
+    --panel: rgba(34, 28, 22, .92); --ink: #f1e7d8; --muted: #a8977f; --line: #3a3027;
+    --accent: #d08a4f; --accent-ink: #1a120b; --bg: #1b1713;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 15px/1.4 "PT Sans", system-ui, sans-serif; }
+  #view { position: fixed; inset: 0; touch-action: none; }
+  #view canvas { width: 100%; height: 100%; display: block; }
+  .panel { position: fixed; left: 16px; top: 16px; width: 300px; max-height: calc(100% - 32px); overflow: auto; z-index: 3;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(6px);
+    transition: transform .3s ease, opacity .3s ease; }
+  .panel.closed { transform: translateX(calc(-100% - 40px)); opacity: 0; pointer-events: none; }
+  .hud { position: fixed; z-index: 2; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px));
+    display: flex; gap: 8px; align-items: center; transition: opacity .3s; }
+  .hud button { width: 46px; height: 46px; border-radius: 12px; font-size: 22px; background: var(--panel); border: 1px solid var(--line);
+    box-shadow: 0 4px 14px rgba(0,0,0,.18); backdrop-filter: blur(6px); }
+  .chip { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; font-weight: 700; font-size: 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18); backdrop-filter: blur(6px); max-width: calc(100vw - 90px); }
+  .close { position: absolute; right: 10px; top: 10px; width: 34px; height: 34px; padding: 0; font-size: 18px; border-radius: 10px; }
+  h1 { margin: 0; font: 700 26px "PT Serif", Georgia, serif; }
+  .sub { color: var(--muted); font-size: 13px; margin: 2px 0 10px; }
+  .status { font-weight: 700; margin: 8px 0; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+  button { border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 8px 6px; border-radius: 8px; font: inherit; font-size: 14px; cursor: pointer; }
+  button.main { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+  button:disabled { opacity: .45; cursor: default; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 14px 0 4px; }
+  ol { margin: 0; padding-left: 22px; font-size: 13px; max-height: 180px; overflow: auto; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .counts { font-size: 13px; margin-top: 10px; color: var(--muted); }
+  .counts b { color: var(--ink); }
+  .rules { margin: 0; padding-left: 18px; font-size: 13px; }
+  .rules li { margin-bottom: 4px; }
+  .tip { position: fixed; pointer-events: none; background: rgba(20, 14, 8, .88); color: #f6ead6; padding: 5px 9px; border-radius: 7px; font-size: 13px; display: none; white-space: nowrap; z-index: 5; }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; font: 700 20px "PT Serif", serif; color: var(--muted); pointer-events: none; }
+  .intro { position: fixed; inset: 0; pointer-events: none; display: none; z-index: 4; }
+  .intro::before, .intro::after { content: ''; position: absolute; left: 0; right: 0; height: 9vh; background: #0b0703; }
+  .intro::before { top: 0; } .intro::after { bottom: 0; }
+  .intro button { pointer-events: auto; }
+  .skip { position: absolute; right: 16px; top: calc(9vh + 12px); background: rgba(20,14,8,.55); color: #f6ead6; border-color: rgba(255,255,255,.25); }
+  .cap { position: absolute; left: 50%; bottom: calc(9vh + 26px); transform: translateX(-50%); width: min(92vw, 900px); text-align: center;
+    opacity: 0; transition: opacity .6s; color: #fff8ec; text-shadow: 0 2px 10px rgba(0,0,0,.75), 0 0 2px rgba(0,0,0,.9); }
+  .cap.on { opacity: 1; }
+  .cap .kk { font: 700 clamp(20px, 3vw, 34px)/1.25 "PT Serif", Georgia, serif; }
+  .cap .ru { font-size: clamp(14px, 1.7vw, 19px); margin-top: 6px; opacity: .9; }
+  .cityname { position: absolute; left: 50%; top: calc(9vh + 30px); transform: translateX(-50%); font: 700 clamp(22px, 3.4vw, 40px) "PT Serif", serif;
+    letter-spacing: 4px; color: #ffe2a6; text-shadow: 0 2px 12px rgba(0,0,0,.7); opacity: 0; transition: opacity .5s; }
+  .cityname.on { opacity: 1; }
+  .ititle { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 10px; opacity: 0; transition: opacity 1.2s; pointer-events: none; }
+  .ititle.on { opacity: 1; background: radial-gradient(ellipse 60% 45% at 50% 50%, rgba(25,12,2,.62), rgba(25,12,2,0) 75%); }
+  .ititle.on button { pointer-events: auto; }
+  .ititle h1 { font: 700 clamp(46px, 8vw, 104px) "PT Serif", Georgia, serif; color: #fff3dc; letter-spacing: 2px;
+    text-shadow: 0 4px 24px rgba(60,25,0,.8), 0 0 3px rgba(0,0,0,.6); }
+  .ititle p { color: #ffeccc; font-size: clamp(15px, 2vw, 22px); margin: 0 0 14px; text-shadow: 0 2px 8px rgba(0,0,0,.8); }
+  .ititle button { justify-self: center; font-size: 18px; padding: 12px 26px; border-radius: 30px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }  .gate { position: fixed; inset: 0; z-index: 6; display: grid; place-content: center; text-align: center; gap: 12px;
+    background: radial-gradient(ellipse at 50% 45%, rgba(40,20,6,.72), rgba(10,5,1,.92)); color: #fff3dc; }
+  .gate h1 { font: 700 clamp(46px, 8vw, 104px) "PT Serif", Georgia, serif; margin: 0; text-shadow: 0 4px 24px rgba(0,0,0,.7); }
+  .gate p { margin: 0 0 16px; font-size: clamp(15px, 2vw, 22px); color: #ffeccc; }
+  .gate .main { justify-self: center; font-size: 19px; padding: 13px 30px; border-radius: 30px; }
+  .gate .link { justify-self: center; border: 0; color: #e8d6b8; text-decoration: underline; background: none; }
+  .skip.mute { right: auto; left: 16px; }
+  [hidden] { display: none !important; }
+  .topbar { position: fixed; z-index: 2; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+  .topbar button { pointer-events: auto; padding: 10px 18px; border-radius: 30px; box-shadow: 0 4px 16px rgba(0,0,0,.3); white-space: nowrap; }
+  .pill { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .asyk-msg { position: fixed; z-index: 3; left: 50%; top: 11%; transform: translateX(-50%); width: min(90vw, 560px); text-align: center; padding: 14px 20px; border-radius: 16px;
+    background: rgba(20,12,5,.84); color: #ffe9c4; font: 700 clamp(17px, 2.4vw, 24px)/1.3 "PT Serif", Georgia, serif; opacity: 0; transition: opacity .4s; pointer-events: none; }
+  .asyk-msg.on { opacity: 1; }
+  @media (max-width: 700px) { .topbar { top: calc(70px + env(safe-area-inset-top, 0px)); } }
+  .lang { position: absolute; right: 14px; top: 16px; display: flex; gap: 2px; }
+  .lang button { padding: 3px 7px; font-size: 12px; border-radius: 6px; }
+  .lang button.on, #bot-levels button.on, .seg button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .seg { display: flex; gap: 4px; } .seg button { flex: 1; }
+  .small { font-size: 13px; color: var(--muted); align-self: center; }
+  .vbtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; opacity: 0; transition: opacity .8s; }
+  .vbtns.on { opacity: 1; }
+  .vbtns:not(.on) button { pointer-events: none !important; }
+  .vbtns button:not(.main) { background: rgba(20,14,8,.55); color: #f6ead6; border-color: rgba(255,255,255,.3); font-size: 17px; padding: 11px 22px; border-radius: 30px; }
+  #n-code, #p-code { font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); min-width: 0; }
+  .seat { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; font-size: 14px; }
+  .seat button { padding: 4px 12px; }
+  .lang { right: 52px !important; }
+  @media (max-width: 700px) {
+    .panel { left: 0; top: 0; bottom: 0; width: min(86vw, 330px); max-height: none; border-radius: 0 16px 16px 0;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 14px calc(12px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); }
+    h1 { font-size: 21px; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="view"></div>
+<div class="loading" id="loading">Ұлы Керуен…</div>
+<div class="tip" id="tip"></div>
+<div class="gate" id="gate">
+  <h1>Ұлы Керуен</h1>
+  <p>Ұлы Жібек жолы бойымен · По Великому Шёлковому пути</p>
+  <button id="g-play" class="main">▶ Бастау · Начать</button>
+  <button id="g-skip" class="link">Заставкасыз · Без заставки</button>
+</div>
+<div class="intro victory" id="victory">
+  <div class="ititle" id="v-title">
+    <h1>Жеңіс!</h1>
+    <p><span id="v-kk"></span> · <span id="v-ru"></span></p>
+    <div class="vbtns" id="v-btns"><button id="v-new" class="main">Жаңа ойын · Новая партия</button><button id="v-board">Тақтаға · К доске</button></div>
+  </div>
+</div>
+<div class="intro" id="intro">
+  <div class="cityname" id="cityname"></div>
+  <div class="cap" id="cap"><div class="kk"></div><div class="ru"></div></div>
+  <div class="ititle" id="ititle">
+    <h1>Ұлы Керуен</h1>
+    <p>Ұлы Жібек жолы бойымен · По Великому Шёлковому пути</p>
+    <button id="i-start" class="main">Ойынды бастау · Начать игру</button>
+  </div>
+  <button id="i-skip" class="skip">Өткізу · Пропустить ›</button>
+  <button id="i-mute" class="skip mute">🔊</button>
+</div>
+<div class="hud" id="hud"><button id="menu-open" aria-label="Мәзір · Меню">☰</button><div class="chip" id="chip"></div></div>
+<div class="topbar" id="topbar"><div class="pill" id="clock" hidden></div><button id="asyk-btn" class="main" hidden></button></div>
+<div class="asyk-msg" id="asyk-msg"></div>
+<aside class="panel" id="panel">
+  <button class="close" id="menu-close" aria-label="Жабу · Закрыть">✕</button>
+  <h1>Ұлы Керуен</h1>
+  <div class="sub">Ұлы Жібек жолы · 49 қала</div>
+  <div class="lang"><button data-lang="kk">ҚАЗ</button><button data-lang="ru">РУС</button></div>
+  <div class="status" id="status"></div>
+  <div class="more">
+    <div class="row">
+      <button class="main" id="b-new" data-i18n="newGame"></button>
+      <button id="b-undo" disabled data-i18n="undo"></button>
+    </div>
+    <div class="row"><button id="b-intro" data-i18n="intro"></button><button id="b-sound"></button></div>
+    <div class="row"><button id="b-names"></button><button id="b-clock"></button></div>
+    <div class="row"><a href="tournament.html" style="flex:1;display:flex"><button style="flex:1" data-i18n="tour"></button></a></div>
+    <h2 data-i18n="bot"></h2>
+    <div class="row three" id="bot-levels">
+      <button data-level="1" data-i18n="easy"></button><button data-level="2" class="on" data-i18n="medium"></button><button data-level="3" data-i18n="hard"></button>
+    </div>
+    <div class="row"><span class="small" data-i18n="playAs"></span>
+      <div class="seg" id="bot-side"><button data-side="w" class="on">Ақ</button><button data-side="b">Қоңыр</button></div></div>
+    <div class="row"><button id="bot-start" class="main" data-i18n="botStart"></button><button id="bot-stop" hidden data-i18n="botStop"></button></div>
+    <p class="note" id="bot-status"></p>
+    <h2 data-i18n="view"></h2>
+    <div class="row three">
+      <button id="v-b">Қоңыр</button>
+      <button id="v-top" data-i18n="top"></button>
+      <button id="v-w">Ақ</button>
+    </div>
+    <div class="counts" id="counts"></div>
+    <h2 data-i18n="online"></h2>
+    <div id="online" hidden>
+      <div class="row"><input id="n-code" value="1" maxlength="20" data-i18n-ph="tableNo"><button id="n-join" class="main" data-i18n="sit"></button></div>
+      <div id="n-seats" class="seats"></div>
+      <p class="note" id="n-status"></p>
+      <div class="row"><button id="n-leave" hidden data-i18n="leave"></button></div>
+    </div>
+    <div id="p2p" hidden>
+      <div class="row"><button id="p-host" class="main" data-i18n="createTable"></button><button id="p-join" data-i18n="join"></button></div>
+      <div class="row"><input id="p-code" maxlength="4" inputmode="numeric" data-i18n-ph="tableNo"></div>
+      <p class="note" id="p-status"></p>
+      <p class="note" id="p-turn"></p>
+      <div class="row"><button id="p-leave" hidden data-i18n="leave"></button></div>
+    </div>
+    <p class="note" id="n-off" data-i18n="offline"></p>
+    <h2 data-i18n="moves"></h2>
+    <ol id="log"></ol>
+    <h2 data-i18n="rules"></h2>
+    <ul class="rules" id="rules"></ul>
+    <p class="note" data-i18n="note"></p>
+  </div>
+</aside>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// ---------- Board data (from the photos of the real board) ----------
+const N = 7;
+const CITIES = [
+  ['НАРА', 'КЁНДЖУ', 'ХУАНХЭ', 'ЧАНЬАНЬ', 'ЛОЯН', 'ЦЮАНЬЧЖОУ', 'ГУАНЧЖОУ'],
+  ['ДУНЬХУАН', 'ТУРФАН', 'ҚАШҚАР', 'КУЧА', 'ХОТАН', 'АҚСУ', 'ЖАРКЕНТ'],
+  ['СУЯБ', 'БАЛАСАҒҰН', 'АЛМАТЫ', 'ТАРАЗ', 'ОТЫРАР', 'ЯСЫ', 'САУРАН'],
+  ['САМАРҚАНД', 'БҰХАРА', 'КӨНЕ МЕРВ', 'ҮРГЕНІШ', 'ХИВА', 'НИШАПУР', 'МАШХАД'],
+  ['КАЛЬКУТТА', 'ДАМАСК', 'КОНСТАНТИ\nНОПОЛЬ', 'АЛЕКСАНДРИЯ', 'БАГДАТ', 'ТЕБРИЗ', 'БЕЙРУТ'],
+  ['СИЦИЛИЯ', 'АФИНА', 'БАРСЕЛОНА', 'АНКАРА', 'РАГУЗА', 'ВАЛЕНСИЯ', 'НЕАПОЛЬ'],
+  ['МАРСЕЛЬ', 'ГЕНУЯ', 'ВЕНЕЦИЯ', 'ЛИОН', 'МИЛАН', 'ФЛОРЕНЦИЯ', 'РИМ'],
+];
+const TAGS = { '1,0': 'КЕРУЕН САРАЙ', '1,6': 'КЕРУЕН САРАЙ', '5,0': 'FONDACO', '5,6': 'FONDACO' };
+// Horizontal links present in each row (index = left column of the link); every vertical link is present.
+const HROW = [[0, 1, 2, 3, 4, 5], [1, 4], [0, 5], [0, 1, 2, 3, 4, 5], [0, 5], [1, 4], [0, 1, 2, 3, 4, 5]];
+// Diagonals between row r and r+1 in the square of columns c..c+1:
+// '\' joins (r,c)-(r+1,c+1), '/' joins (r,c+1)-(r+1,c), 'X' both, '' none.
+const DIAG = [
+  ['\\', '', '/', '\\', '', '/'],
+  ['/', 'X', '/', '\\', 'X', '\\'],
+  ['X', '/', 'X', 'X', '\\', '\\'],
+  ['\\', '\\', 'X', 'X', '/', 'X'],
+  ['\\', 'X', '\\', '/', 'X', '/'],
+  ['/', '', '\\', '/', '', '\\'],
+];
+// Figures in the order the author lists them (left to right on the start row).
+const TYPES = [
+  { name: 'Керуенбасы', kind: 'camel', load: 'rider', file: 'keruenbasy' },
+  { name: 'Аруана', kind: 'camel', load: 'crate', file: 'aruana' },
+  { name: 'Бактриан', kind: 'camel', load: 'bundle', humps: 2, file: 'baktrian' },
+  { name: 'Қарауыл', kind: 'horse', file: 'karauyl' },
+  { name: 'Дромедар', kind: 'camel', load: 'wheel', file: 'dromedar' },
+  { name: 'Нар түйе', kind: 'camel', load: 'bags', file: 'nar' },
+  { name: 'Желкенді кеме', kind: 'ship', file: 'keme' },
+];
+const SIDE = { b: 'Қоңыр', w: 'Ақ' };
+// ---------- Language: Қазақша (default) / Русский ----------
+const I18N = {
+  kk: {
+    tour: '🏆 Турнир және жеребе',
+    namesOn: '🏷 Атаулар: бар', namesOff: '🏷 Атаулар: жоқ', asykBtn: 'Асық ату — кім бастайды?', asykTie: 'Тең түсті — қайта атамыз',
+    asykRes: (w, b, s) => `Асық: Ақ — ${w}, Қоңыр — ${b}. Бастайды: ${s}`,
+    clockBtn: '⏱ 45 минут', clockStop: '⏱ Уақытты алу', stages: ['1-партия', '2-партия', 'Қосымша 10 минут', '50 жүріс'], movesLeft: n => `${n} жүріс қалды`,
+    draw2: 'Уақыт бітті, тең. 2-партия басталады', draw10: 'Тағы тең. 10 минут беріледі', draw50: 'Тағы тең. 50 жүріс беріледі',
+    byCount: s => `Фигуралар саналды. Жеңімпаз: ${s}`, evenEnd: 'Фигуралар саналды: тең нәтиже',
+    longOver: n => `${n}: алыс жүріс лимиті бітті, енді тек бір қадамнан жүреді`,
+    newGame: 'Жаңа ойын', sure: 'Нақты ма? Тағы басыңыз', undo: 'Жүрісті қайтару', intro: '▶ Кіріспе', sound: '🔊 Дыбыс', noSound: '🔇 Дыбыссыз',
+    view: 'Көрініс', top: 'Жоғарыдан', online: 'Желіде ойнау', bot: 'Компьютермен ойнау', moves: 'Жүрістер', rules: 'Ереже',
+    tableNo: 'Үстел нөмірі', sit: 'Үстелге отыру', leave: 'Үстелден шығу', createTable: 'Үстел ашу', join: 'Қосылу',
+    offline: 'Желіде ойнау ойын сайтында және claude.ai нұсқасында жұмыс істейді.',
+    rulesHtml: `<li><b>Мақсат</b> — керуен жинау: өзіңнің 7 фигураңды бір сызыққа тізу — тігінен, ұзын диагональ бойымен немесе көлденеңінен (ортаңғы қатардан бастап қарсылас жағына қарай, өз үш қатарыңда емес) және қарсыласқа керуенін жинауға жол бермеу.</li>
+      <li>Барлық фигуралар <b>оңға, солға, алға, артқа</b> жүре алады, себебі бұл — стратегиялық ойын. Ұрыс, соғу, жеп қою, өлтіру жоқ.</li>
+      <li><b>Керуенбасы</b> ферзь сияқты жүреді — сызықтар бойымен кез келген қашықтыққа, шектеусіз; біртіндеп те жүре алады.</li>
+      <li><b>Қарауылдың</b> ойын бойы 3 алыс жүрісі бар; қалған уақытта біртіндеп жүреді.</li>
+      <li><b>Желкенді кеме</b> ойын бойы бір рет алыс жүре алады; қалған уақытта біртіндеп жүреді.</li>
+      <li><b>Аруана, бактриан, дромедар, нар</b> — сызық бойымен бір қадамнан.</li>
+      <li>Тек бос қалаға жүруге болады, фигуралар бір-бірін ұрмайды және үстінен секірмейді.</li>
+      <li><b>Кім бастайды</b> — асық атылады: Алшы, Тәйкі, Бүк, Шік, Омпы, Сомпы.</li>
+      <li><b>Уақыт</b> — партияға 45 минут. Тең болса — екінші партия; тағы тең болса — 10 минут; одан кейін 50 жүріс; соңында фигуралар саналады, жеңіске кім жақын болса — сол жеңімпаз.</li>`,
+    note: 'Фигураны басыңыз — ол бара алатын қалалар жарықталады. Тақтаны айналдыруға және жақындатуға болады. Кім бастайтынын асық шешеді; асық атылмаса, Ақтар бастайды.',
+    turnN: (n, s) => `${n}-жүріс · кезек: ${s}`, won: s => `Жеңіс: ${s}! Керуен жиналды.`,
+    longLeft: (q, k) => `алыс жүріс: қарауыл ${q}/3, кеме ${k}/1`, longMove: ' (алыс жүріс)',
+    caravan: (s, l) => `★ ${s} керуенін ${l} жинады!`, row: 'көлденеңінен', col: 'тігінен', diag: 'диагональ бойымен',
+    cantGo: n => `${n} ол жаққа жүрмейді`, busy: 'Қала бос емес', nowMoves: s => `Қазір ${s} жүреді`,
+    sitFirst: 'Жүру үшін үстелге отырыңыз', foe: 'Бұл қарсыластың фигуралары', foeTurn: 'Қазір қарсыластың кезегі', botPiece: 'Бұл компьютердің фигуралары',
+    queen: 'ферзь сияқты жүреді', longN: n => `алыс жүріс: ${n}`, step: 'бір қадамнан жүреді',
+    p2pHint: 'Бір ойыншы үстел ашады, екіншісі оның нөмірін енгізеді.', p2pOpening: 'Үстел ашылуда…',
+    p2pOpened: c => `${c} үстел ашылды. Осы нөмірді қарсыласыңызға айтыңыз — сіз Ақтармен ойнайсыз.`,
+    p2pJoined: s => `Қарсылас үстелде. Сіз ${s} жақта ойнайсыз.`, p2pLeft: 'Қарсылас шығып кетті. Ол сол нөмірмен қайта қосыла алады.',
+    p2pLost: 'Қарсыласпен байланыс үзілді.', p2pIdTaken: 'Бұл нөмір бос емес — «Үстел ашу» батырмасын қайта басыңыз.',
+    p2pFail: 'Үстел ашу мүмкін болмады. Интернетті тексеріп, қайталап көріңіз.', p2pNeed4: '4 цифрлы үстел нөмірін енгізіңіз.',
+    p2pJoining: c => `${c} үстеліне қосылудамыз…`, p2pNoTable: c => `${c} үстел табылмады. Нөмірді тексеріңіз — үстел ашқан ойыншы ойынды жаппауы керек.`,
+    p2pJoinFail: 'Қосылу мүмкін болмады. Интернетті тексеріп, қайталап көріңіз.',
+    yourTurn: s => `Сіздің кезегіңіз (сіз — ${s}).`, theirTurn: s => `Қарсыластың кезегі (сіз — ${s}).`, over: 'Ойын аяқталды.',
+    you: 'сіз', foeName: 'қарсылас', free: 'бос', sitBtn: 'Отыру', standBtn: 'Тұру',
+    dbHint: 'Екі ойыншы бір үстел нөмірін енгізіп, әрқайсысы өз жағына отырады.', dbJoining: c => `${c} үстеліне қосылудамыз…`,
+    dbNoRight: 'Бұл үстелде жүруге құқығыңыз жоқ — тек көре аласыз.', dbLost: 'Үстелмен байланыс үзілді. «Үстелге отыру» батырмасын қайта басыңыз.',
+    seatBusy: 'Орынды біреу алып жатыр — қайталап көріңіз', seatTaken: 'Бұл орын бос емес',
+    dbViewer: c => `${c}-үстел: сіз көрерменсіз — тек шақырылған редактор жүре алады.`, dbChoose: c => `${c}-үстел: жағыңызды таңдаңыз немесе ойынды көріңіз.`,
+    dbOver: c => `${c}-үстел: ойын аяқталды.`, dbYour: c => `${c}-үстел: сіздің кезегіңіз.`, dbTheirs: c => `${c}-үстел: қарсыластың кезегі.`,
+    botStart: 'Ойынды бастау', botStop: 'Компьютерсіз ойнау', easy: 'Оңай', medium: 'Орташа', hard: 'Қиын', playAs: 'Мен ойнаймын:',
+    thinking: 'Компьютер ойлануда…', botOn: (lv, s) => `Компьютер (${lv}) — ${s} жақта.`, botHint: 'Деңгейді және жағыңызды таңдап, «Ойынды бастау» басыңыз.',
+  },
+  ru: {
+    tour: '🏆 Турнир и жеребьёвка',
+    namesOn: '🏷 Названия: есть', namesOff: '🏷 Названия: нет', asykBtn: 'Бросить асык — кто начнёт?', asykTie: 'Поровну — бросаем ещё раз',
+    asykRes: (w, b, s) => `Асык: Ақ — ${w}, Қоңыр — ${b}. Начинают: ${s}`,
+    clockBtn: '⏱ 45 минут', clockStop: '⏱ Убрать время', stages: ['1-я партия', '2-я партия', 'Ещё 10 минут', '50 ходов'], movesLeft: n => `осталось ходов: ${n}`,
+    draw2: 'Время вышло, ничья. Начинается 2-я партия', draw10: 'Снова ничья. Даётся 10 минут', draw50: 'Снова ничья. Даётся 50 ходов',
+    byCount: s => `Фигуры посчитаны. Победитель: ${s}`, evenEnd: 'Фигуры посчитаны: ничья',
+    longOver: n => `${n}: лимит дальних ходов исчерпан, теперь только по одному шагу`,
+    newGame: 'Новая партия', sure: 'Точно? Ещё раз', undo: 'Отменить ход', intro: '▶ Заставка', sound: '🔊 Звуки', noSound: '🔇 Без звуков',
+    view: 'Вид', top: 'Сверху', online: 'Игра по сети', bot: 'Против компьютера', moves: 'Ходы', rules: 'Правила',
+    tableNo: 'Номер стола', sit: 'Сесть за стол', leave: 'Выйти из-за стола', createTable: 'Создать стол', join: 'Подключиться',
+    offline: 'Игра по сети работает на сайте игры и в версии на claude.ai.',
+    rulesHtml: `<li><b>Цель</b> — собрать караван: все 7 своих фигур в одну линию — по вертикали, по длинной диагонали или поперёк доски (от среднего ряда и дальше, не на своих трёх рядах), не давая сопернику собрать свой.</li>
+      <li>Все фигуры могут ходить <b>вправо, влево, вперёд и назад</b>, потому что это стратегическая игра. Боя, съедания и убийства фигур нет.</li>
+      <li><b>Керуенбасы</b> ходит как ферзь — по линиям на любое расстояние, без ограничений; может ходить и по одному шагу.</li>
+      <li><b>Қарауыл</b> — 3 дальних хода за партию; в остальное время по одному шагу.</li>
+      <li><b>Желкенді кеме</b> — один дальний ход за партию; в остальное время по одному шагу.</li>
+      <li><b>Аруана, бактриан, дромедар, нар</b> — по одному шагу вдоль линии.</li>
+      <li>Ходить можно только на свободный город; фигуры не бьют друг друга и не перепрыгивают.</li>
+      <li><b>Кто начинает</b> — бросают асык: Алшы, Тәйкі, Бүк, Шік, Омпы, Сомпы.</li>
+      <li><b>Время</b> — 45 минут на партию. При ничьей — вторая партия; снова ничья — 10 минут; затем 50 ходов; в конце считают фигуры, побеждает тот, кто ближе к победе.</li>`,
+    note: 'Нажмите фигуру — подсветятся города, куда она может пойти. Доску можно вращать и приближать. Кто начинает, решает асык; если его не бросать, начинают белые.',
+    turnN: (n, s) => `Ход ${n} · ходят ${s}`, won: s => `Победа: ${s}! Караван собран.`,
+    longLeft: (q, k) => `дальних ходов: қарауыл ${q}/3, кеме ${k}/1`, longMove: ' (дальний ход)',
+    caravan: (s, l) => `★ ${s} собрали караван ${l}!`, row: 'поперёк доски', col: 'по вертикали', diag: 'по диагонали',
+    cantGo: n => `${n} туда не ходит`, busy: 'Город занят', nowMoves: s => `Сейчас ходят ${s}`,
+    sitFirst: 'Сядьте за стол, чтобы ходить', foe: 'Это фигуры соперника', foeTurn: 'Сейчас ход соперника', botPiece: 'Это фигуры компьютера',
+    queen: 'ходит как ферзь', longN: n => `дальних ходов: ${n}`, step: 'ходит на 1 шаг',
+    p2pHint: 'Один игрок создаёт стол, второй вводит его номер.', p2pOpening: 'Создаём стол…',
+    p2pOpened: c => `Стол ${c} создан. Скажите этот номер сопернику — вы играете за Ақ.`,
+    p2pJoined: s => `Соперник за столом. Вы играете за ${s}.`, p2pLeft: 'Соперник отключился. Он может подключиться заново по тому же номеру.',
+    p2pLost: 'Связь с соперником прервалась.', p2pIdTaken: 'Этот номер занят — нажмите «Создать стол» ещё раз.',
+    p2pFail: 'Не удалось создать стол. Проверьте интернет и попробуйте ещё раз.', p2pNeed4: 'Введите номер стола из 4 цифр.',
+    p2pJoining: c => `Подключаемся к столу ${c}…`, p2pNoTable: c => `Стола ${c} нет. Проверьте номер — создатель стола должен держать игру открытой.`,
+    p2pJoinFail: 'Не удалось подключиться. Проверьте интернет и попробуйте ещё раз.',
+    yourTurn: s => `Ваш ход (вы — ${s}).`, theirTurn: s => `Ход соперника (вы — ${s}).`, over: 'Партия окончена.',
+    you: 'вы', foeName: 'соперник', free: 'свободно', sitBtn: 'Сесть', standBtn: 'Встать',
+    dbHint: 'Оба игрока вводят один номер стола и садятся каждый за свою сторону.', dbJoining: c => `Подключаемся к столу ${c}…`,
+    dbNoRight: 'У вас нет права делать ходы за этим столом — можно только смотреть.', dbLost: 'Связь со столом прервалась. Нажмите «Сесть за стол» ещё раз.',
+    seatBusy: 'Место сейчас занимают — попробуйте ещё раз', seatTaken: 'Это место уже занято',
+    dbViewer: c => `Стол ${c}: вы зритель — делать ходы может только приглашённый редактор.`, dbChoose: c => `Стол ${c}: выберите сторону или смотрите партию.`,
+    dbOver: c => `Стол ${c}: партия окончена.`, dbYour: c => `Стол ${c}: ваш ход.`, dbTheirs: c => `Стол ${c}: ход соперника.`,
+    botStart: 'Начать партию', botStop: 'Играть без компьютера', easy: 'Легко', medium: 'Средне', hard: 'Сложно', playAs: 'Я играю за:',
+    thinking: 'Компьютер думает…', botOn: (lv, s) => `Компьютер (${lv}) играет за ${s}.`, botHint: 'Выберите уровень и сторону и нажмите «Начать партию».',
+  },
+};
+let LANG = 'kk';
+try { LANG = localStorage.getItem('uly-keruen-lang') || 'kk'; } catch (e) {}
+function T(key, ...a) { const v = (I18N[LANG] || I18N.kk)[key]; return typeof v === 'function' ? v(...a) : v ?? key; }
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = T(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = T(el.dataset.i18nPh); el.setAttribute('aria-label', T(el.dataset.i18nPh)); });
+  const rules = document.getElementById('rules'); if (rules) rules.innerHTML = T('rulesHtml');
+  document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === LANG));
+}
+
+const k = (r, c) => r + ',' + c;
+const rc = key => key.split(',').map(Number);
+const city = key => { const [r, c] = rc(key); return CITIES[r][c].replace('\n', ''); };
+
+const EDGES = [];
+for (let r = 0; r < N; r++) {
+  for (const c of HROW[r]) EDGES.push([k(r, c), k(r, c + 1)]);
+  if (r < N - 1) for (let c = 0; c < N; c++) EDGES.push([k(r, c), k(r + 1, c)]);
+}
+DIAG.forEach((row, r) => row.forEach((d, c) => {
+  if (d === '\\' || d === 'X') EDGES.push([k(r, c), k(r + 1, c + 1)]);
+  if (d === '/' || d === 'X') EDGES.push([k(r, c + 1), k(r + 1, c)]);
+}));
+const NEIGH = {};
+for (const [a, b] of EDGES) { (NEIGH[a] ||= []).push(b); (NEIGH[b] ||= []).push(a); }
+
+// Start: brown on the European row with the ship in Marseille, white on the Asian row with the ship in Guangzhou.
+function startPieces() {
+  const p = [];
+  for (let t = 0; t < 7; t++) {
+    p.push({ id: 'b' + t, s: 'b', t, cell: k(6, 6 - t) });
+    p.push({ id: 'w' + t, s: 'w', t, cell: k(0, t) });
+  }
+  return p;
+}
+
+// ---------- Scene ----------
+const view = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.32;
+view.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xe9a873);
+scene.fog = new THREE.Fog(0xe9a873, 26, 78);
+const pmrem = new THREE.PMREMGenerator(renderer);
+
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 100);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = 1.36;
+controls.minDistance = 5;
+controls.maxDistance = 22;
+controls.enablePan = false;
+
+const hemi = new THREE.HemisphereLight(0xe8eef8, 0x9a7a55, 1.25); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffe6c6, 2.3);
+sun.position.set(-6, 11, -7);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 30 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.02;
+scene.add(sun);
+
+const TOP = 0.3;              // height of the playing surface
+const pos = key => { const [r, c] = rc(key); return new THREE.Vector3(c - 3, TOP, r - 3); };
+
+// ---------- Procedural textures ----------
+function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
+function tex(c, repeat) {
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat); }
+  return t;
+}
+function rand(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function woodTexture(base, grain, size, seed, burl) {
+  const [c, g] = canvas(size, size), rnd = rand(seed);
+  g.fillStyle = base; g.fillRect(0, 0, size, size);
+  if (burl) for (let i = 0; i < 70; i++) {
+    const x = rnd() * size, y = rnd() * size, r = 20 + rnd() * 120;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, `rgba(${grain},${0.12 + rnd() * 0.2})`); gr.addColorStop(1, `rgba(${grain},0)`);
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  for (let i = 0; i < 320; i++) {
+    const y0 = rnd() * size, amp = 3 + rnd() * 16, f = 0.002 + rnd() * 0.01, ph = rnd() * 7;
+    g.strokeStyle = `rgba(${grain},${0.04 + rnd() * 0.16})`; g.lineWidth = 0.5 + rnd() * 2.5;
+    g.beginPath();
+    for (let x = -10; x <= size + 10; x += 8) g.lineTo(x, y0 + Math.sin(x * f + ph) * amp + Math.sin(x * 0.0021 + i) * 26);
+    g.stroke();
+  }
+  return tex(c);
+}
+function clothTexture() {
+  const [c, g] = canvas(512, 512);
+  g.fillStyle = '#f3efe8'; g.fillRect(0, 0, 512, 512);
+  g.strokeStyle = 'rgba(160,150,135,.25)'; g.lineWidth = 3;
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    const x = i * 128 + 64, y = j * 128 + 64;
+    g.beginPath(); g.ellipse(x, y, 40, 22, (i + j) % 2 ? 0.6 : -0.6, 0, 7); g.stroke();
+    g.beginPath(); g.arc(x, y, 9, 0, 7); g.stroke();
+  }
+  return tex(c, 14);
+}
+
+// City disc face: coloured disc, scalloped rim, a building silhouette and the name, like the printed medallions.
+function drawBuilding(g, type, col) {
+  g.fillStyle = col;
+  const B = 400;
+  if (type === 'pagoda') {
+    g.fillRect(196, 330, 120, 70);
+    for (const [y, w] of [[330, 190], [270, 150], [215, 110]]) {
+      g.beginPath(); g.moveTo(256 - w / 2 - 14, y); g.quadraticCurveTo(256, y - 46, 256 + w / 2 + 14, y); g.lineTo(256 + w / 2 - 10, y - 14); g.lineTo(256 - w / 2 + 10, y - 14); g.fill();
+      if (y > 215) g.fillRect(256 - w / 2 + 22, y - 2, w - 44, 14);
+    }
+    g.fillRect(252, 150, 8, 40);
+  } else if (type === 'mosque') {
+    g.fillRect(176, 330, 160, B - 330);
+    g.beginPath(); g.arc(256, 330, 62, Math.PI, 0); g.fill();
+    g.fillRect(252, 248, 8, 24);
+    for (const x of [150, 362]) { g.fillRect(x - 10, 240, 20, B - 240); g.beginPath(); g.moveTo(x - 14, 242); g.lineTo(x, 214); g.lineTo(x + 14, 242); g.fill(); }
+    g.beginPath(); g.arc(256, 232, 13, 0.6, 5.7); g.arc(262, 232, 10, 5.7, 0.6, true); g.fill();
+  } else if (type === 'temple') {
+    g.beginPath(); g.moveTo(160, 300); g.lineTo(256, 250); g.lineTo(352, 300); g.fill();
+    g.fillRect(160, 300, 192, 14);
+    for (let i = 0; i < 6; i++) g.fillRect(170 + i * 32, 318, 14, B - 334);
+    g.fillRect(156, B - 16, 200, 16);
+  } else {
+    g.fillRect(196, 300, 120, B - 300);
+    for (const [x, h] of [[206, 120], [256, 160], [306, 120]]) { g.beginPath(); g.moveTo(x - 18, 300); g.lineTo(x, 300 - h); g.lineTo(x + 18, 300); g.fill(); }
+  }
+}
+function discTexture(r, c) {
+  const dark = (r + c) % 2 === 0;
+  const [cv, g] = canvas(512, 512);
+  g.fillStyle = dark ? '#1b2131' : '#e7b73d';
+  g.beginPath(); g.arc(256, 256, 256, 0, 7); g.fill();
+  const rim = g.createRadialGradient(256, 256, 200, 256, 256, 256);
+  rim.addColorStop(0, 'rgba(0,0,0,0)'); rim.addColorStop(1, dark ? 'rgba(0,0,0,.45)' : 'rgba(120,70,0,.35)');
+  g.fillStyle = rim; g.beginPath(); g.arc(256, 256, 256, 0, 7); g.fill();
+  g.strokeStyle = dark ? 'rgba(220,190,120,.55)' : 'rgba(90,60,10,.55)'; g.lineWidth = 6; g.setLineDash([10, 8]);
+  g.beginPath(); g.arc(256, 256, 236, 0, 7); g.stroke(); g.setLineDash([]);
+  const type = r === 0 ? 'pagoda' : r <= 4 ? (c % 3 === 2 && r === 4 ? 'temple' : 'mosque') : (c % 2 ? 'temple' : 'spires');
+  drawBuilding(g, type, dark ? '#a98a63' : '#8a6a2c');
+  const lines = CITIES[r][c].split('\n');
+  let fs = 92;
+  g.font = `700 ${fs}px "PT Serif", Georgia, serif`;
+  while (Math.max(...lines.map(l => g.measureText(l).width)) > 400 && fs > 30) { fs -= 2; g.font = `700 ${fs}px "PT Serif", Georgia, serif`; }
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = dark ? '#ece3cf' : '#140d04';
+  g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = dark ? 6 : 0;
+  const y0 = 205 - (lines.length - 1) * fs * 0.55;
+  g.strokeStyle = g.fillStyle; g.lineWidth = dark ? 2 : 5; g.lineJoin = 'round';
+  lines.forEach((l, i) => { g.strokeText(l, 256, y0 + i * fs * 1.08); g.fillText(l, 256, y0 + i * fs * 1.08); });
+  const tag = TAGS[k(r, c)];
+  if (tag) {
+    g.shadowBlur = 0; g.font = '700 40px "PT Serif", Georgia, serif';
+    const span = 1.25, n = tag.length;
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 - span / 2 + span * (i + 0.5) / n;
+      g.save(); g.translate(256 + Math.cos(a) * 178, 256 + Math.sin(a) * 178); g.rotate(a + Math.PI / 2);
+      g.fillText(tag[i], 0, 0); g.restore();
+    }
+  }
+  return tex(cv);
+}
+
+// ---------- Board ----------
+function wavyFrame(half, amp) {
+  const pts = [], M = 60;
+  const corners = [[-half, -half], [half, -half], [half, half], [-half, half]];
+  for (let e = 0; e < 4; e++) {
+    const [ax, ay] = corners[e], [bx, by] = corners[(e + 1) % 4];
+    const nx = (by - ay) / (2 * half), ny = -(bx - ax) / (2 * half);
+    for (let j = 0; j < M; j++) {
+      const t = j / M, s = Math.sin(t * Math.PI);
+      const off = 0.32 * Math.pow(1 - s, 3) + amp * Math.sin(t * Math.PI * 4) * s - 0.1 * s;
+      pts.push(new THREE.Vector2(ax + (bx - ax) * t + nx * off, ay + (by - ay) * t + ny * off));
+    }
+  }
+  return pts;
+}
+const lightWood = woodTexture('#b8641f', '70,28,6', 1024, 7, false);
+const darkWood = woodTexture('#4a200c', '18,6,2', 1024, 3, true);
+
+// ---------- World: the Silk Road at golden hour ----------
+// Sky dome, desert dunes, a Kazakh carpet under the board, a caravanserai city and a camel caravan on the horizon.
+const SUN_DIR = new THREE.Vector3(-0.62, 0.2, -0.76).normalize();
+function skyMaterial() {
+  return new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { top: { value: new THREE.Color(0x24345a) }, mid: { value: new THREE.Color(0xb86f55) }, hor: { value: new THREE.Color(0xe9a873) }, sunDir: { value: SUN_DIR } },
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform vec3 top, mid, hor, sunDir; varying vec3 vDir;
+      void main(){
+        float h = clamp(vDir.y, -0.3, 1.0);
+        vec3 c = mix(hor, mid, smoothstep(0.02, 0.22, h));
+        c = mix(c, top, smoothstep(0.22, 0.8, h));
+        float s = max(dot(normalize(vDir), sunDir), 0.0);
+        c += vec3(1.0, 0.72, 0.42) * (pow(s, 900.0) * 3.0 + pow(s, 14.0) * 0.4);
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+}
+const sky = new THREE.Mesh(new THREE.SphereGeometry(80, 48, 24), skyMaterial()); scene.add(sky);
+{ const envScene = new THREE.Scene(); envScene.add(new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), skyMaterial()));
+  scene.environment = pmrem.fromScene(envScene, 0.02).texture; }
+
+function sandTexture() {
+  const [c, g] = canvas(512, 512), rnd = rand(5);
+  g.fillStyle = '#d4a873'; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 70; i++) {
+    const y0 = rnd() * 512, a = 4 + rnd() * 6;
+    g.strokeStyle = `rgba(${rnd() < 0.5 ? '150,105,60' : '245,215,170'},${0.15 + rnd() * 0.2})`; g.lineWidth = 2 + rnd() * 3;
+    g.beginPath(); for (let x = 0; x <= 512; x += 8) g.lineTo(x, y0 + Math.sin(x / 512 * Math.PI * 4 + i) * a); g.stroke();
+  }
+  for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '110,75,40' : '255,235,200'},${rnd() * 0.25})`; g.fillRect(rnd() * 512, rnd() * 512, 1.5, 1.5); }
+  return tex(c, 26);
+}
+{ // dunes, flat around the carpet
+  const geo = new THREE.PlaneGeometry(150, 150, 240, 240); geo.rotateX(-Math.PI / 2);
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z);
+    const ridge = v => 1 - Math.abs(Math.sin(v));
+    const h = 2.2 * Math.pow(ridge(x * 0.07 + Math.sin(z * 0.045) * 2.2), 2) + 1.2 * Math.pow(ridge(z * 0.09 + x * 0.03 + 1.7), 2)
+      + 0.35 * Math.sin(x * 0.31 + z * 0.17) + 0.25 * Math.sin(z * 0.37 - x * 0.11);
+    const f = THREE.MathUtils.smoothstep(r, 24, 38);   // flat ground for the bazaar, the road and the gate
+    p.setY(i, f * h * (1 + r * 0.02) - 0.03);
+  }
+  geo.computeVertexNormals();
+  const sand = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: sandTexture(), color: 0xf0d2a8, roughness: 0.97 }));
+  sand.receiveShadow = true; scene.add(sand);
+}
+
+// Kazakh carpet: red field, blue and gold borders, ram-horn (қошқар мүйіз) medallions
+function carpetTexture() {
+  const W = 1280, H = 1000, [c, g] = canvas(W, H);
+  g.fillStyle = '#6e1a16'; g.fillRect(0, 0, W, H);
+  const horn = (x, y, s, col) => {
+    g.strokeStyle = col; g.lineWidth = s * 0.16; g.lineCap = 'round';
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+      g.beginPath(); g.moveTo(x, y);
+      g.bezierCurveTo(x + sx * s * 0.2, y + sy * s * 0.9, x + sx * s * 1.1, y + sy * s * 0.9, x + sx * s * 0.9, y + sy * s * 0.35);
+      g.bezierCurveTo(x + sx * s * 0.75, y + sy * s * 0.05, x + sx * s * 0.45, y + sy * s * 0.25, x + sx * s * 0.55, y + sy * s * 0.45);
+      g.stroke();
+    }
+  };
+  // borders
+  const band = (m, w, col) => { g.strokeStyle = col; g.lineWidth = w; g.strokeRect(m, m, W - 2 * m, H - 2 * m); };
+  band(30, 40, '#1d2a4a'); band(62, 14, '#d9a640'); band(100, 52, '#1d2a4a'); band(134, 10, '#d9a640');
+  for (let x = 120; x < W - 100; x += 64) { horn(x, 100, 18, '#d9a640'); horn(x, H - 100, 18, '#d9a640'); }
+  for (let y = 160; y < H - 140; y += 64) { horn(100, y, 18, '#d9a640'); horn(W - 100, y, 18, '#d9a640'); }
+  // field medallions
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+    const x = 330 + i * 310, y = 345 + j * 310;
+    g.fillStyle = '#1d2a4a'; g.beginPath(); g.moveTo(x, y - 120); g.lineTo(x + 120, y); g.lineTo(x, y + 120); g.lineTo(x - 120, y); g.closePath(); g.fill();
+    g.strokeStyle = '#d9a640'; g.lineWidth = 8; g.stroke();
+    horn(x, y, 60, '#e8c26a'); horn(x, y, 26, '#b8402e');
+  }
+  for (let i = 0; i < 26000; i++) { g.fillStyle = `rgba(0,0,0,${Math.random() * 0.12})`; g.fillRect(Math.random() * W, Math.random() * H, 2, 2); }
+  return tex(c);
+}
+{
+  const carpet = new THREE.Mesh(new THREE.BoxGeometry(14, 0.03, 11), [
+    new THREE.MeshStandardMaterial({ color: 0x5a1512, roughness: 1 }), new THREE.MeshStandardMaterial({ color: 0x5a1512, roughness: 1 }),
+    new THREE.MeshStandardMaterial({ map: carpetTexture(), roughness: 0.95 }), new THREE.MeshStandardMaterial({ color: 0x3a0f0c }),
+    new THREE.MeshStandardMaterial({ color: 0x5a1512, roughness: 1 }), new THREE.MeshStandardMaterial({ color: 0x5a1512, roughness: 1 })]);
+  carpet.position.y = -0.012; carpet.receiveShadow = true; scene.add(carpet);
+  const fringe = new THREE.MeshStandardMaterial({ color: 0xe9dcc0, roughness: 1 });
+  for (const x of [-7.12, 7.12]) for (let z = -5.3; z <= 5.3; z += 0.18) {
+    const f = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.012, 0.05), fringe); f.position.set(x, 0, z); scene.add(f);
+  }
+}
+
+// Silhouettes on the horizon: a caravanserai city with domes and minarets, and a caravan on a dune ridge
+function skylineTexture(seed) {
+  const W = 2048, H = 512, [c, g] = canvas(W, H), rnd = rand(seed);
+  g.fillStyle = 'rgba(70,40,48,1)';
+  g.fillRect(0, H - 90, W, 90);
+  let x = 40;
+  while (x < W - 120) {
+    const kind = rnd(), w = 70 + rnd() * 120, base = H - 90;
+    if (kind < 0.35) {                                   // dome on a drum
+      const r = w * 0.45; g.fillRect(x, base - 70, w, 70); g.fillRect(x + w / 2 - r * 0.8, base - 70 - r * 0.5, r * 1.6, r * 0.5);
+      g.beginPath(); g.ellipse(x + w / 2, base - 70 - r * 0.5, r * 0.85, r * 1.05, 0, Math.PI, 0); g.fill();
+      g.fillRect(x + w / 2 - 2, base - 70 - r * 1.75, 4, r * 0.3);
+    } else if (kind < 0.6) {                             // minaret
+      g.fillRect(x + w * 0.4, base - 230 - rnd() * 60, 22, 260); g.fillRect(x + w * 0.4 - 6, base - 200, 34, 10);
+      g.beginPath(); g.moveTo(x + w * 0.4 - 4, base - 230); g.lineTo(x + w * 0.4 + 11, base - 275); g.lineTo(x + w * 0.4 + 26, base - 230); g.fill();
+    } else if (kind < 0.8) {                             // portal (iwan)
+      g.fillRect(x, base - 150, w, 150);
+      g.globalCompositeOperation = 'destination-out';
+      g.beginPath(); g.moveTo(x + w * 0.25, base); g.lineTo(x + w * 0.25, base - 80); g.quadraticCurveTo(x + w / 2, base - 135, x + w * 0.75, base - 80); g.lineTo(x + w * 0.75, base); g.fill();
+      g.globalCompositeOperation = 'source-over';
+    } else g.fillRect(x, base - 40 - rnd() * 30, w, 80);  // wall
+    x += w * (0.7 + rnd() * 0.5);
+  }
+  return tex(c);
+}
+function caravanTexture() {
+  const W = 1600, H = 300, [c, g] = canvas(W, H);
+  g.fillStyle = 'rgba(55,32,30,1)'; g.strokeStyle = g.fillStyle; g.lineCap = 'round';
+  for (let i = 0; i < 8; i++) {
+    const x = 120 + i * 180, y = 190, s = i === 0 ? 1.05 : 1;
+    g.beginPath(); g.ellipse(x, y, 60 * s, 30 * s, 0, 0, 7); g.fill();                    // body
+    g.beginPath(); g.ellipse(x - 5, y - 28, 30 * s, 26 * s, 0, Math.PI, 0); g.fill();     // hump
+    g.lineWidth = 14; g.beginPath(); g.moveTo(x + 50, y - 5); g.quadraticCurveTo(x + 90, y + 10, x + 88, y - 55); g.stroke();   // neck
+    g.beginPath(); g.ellipse(x + 100, y - 60, 20, 10, -0.2, 0, 7); g.fill();               // head
+    g.lineWidth = 9;
+    for (const [lx, sw] of [[-40, 12], [-25, -10], [30, 10], [45, -12]]) { g.beginPath(); g.moveTo(x + lx, y + 20); g.lineTo(x + lx + sw, y + 95); g.stroke(); }
+    if (i % 3 === 0) { g.fillRect(x - 14, y - 95, 24, 45); g.beginPath(); g.arc(x - 2, y - 104, 12, 0, 7); g.fill(); }   // rider
+    else { g.beginPath(); g.ellipse(x - 5, y - 52, 34, 20, 0, 0, 7); g.fill(); }            // load
+  }
+  return tex(c);
+}
+function billboard(texture, w, h, x, y, z, faceY) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: texture, transparent: true, fog: true, depthWrite: false }));
+  m.position.set(x, y, z); m.rotation.y = faceY; scene.add(m); return m;
+}
+billboard(skylineTexture(3), 64, 16, -8, 4.2, -62, 0);
+billboard(skylineTexture(9), 64, 16, 10, 4.2, 62, Math.PI);
+billboard(caravanTexture(), 18, 3.4, -30, 3.0, -38, 0.6);
+billboard(caravanTexture(), 18, 3.4, 34, 2.6, 30, Math.PI + 0.7);
+// ---------- Bazaar: the market around the board ----------
+// Striped awnings over stalls of spice cones, sacks, jars, baskets and rolled carpets, brass lanterns,
+// a tiled caravanserai gate, palms, dust drifting in the light and birds high above.
+const bazaar = new THREE.Group(); scene.add(bazaar);
+function stripeTexture(a, b, n = 8) {
+  const [c, g] = canvas(256, 256); const w = 256 / n;
+  for (let i = 0; i < n; i++) { g.fillStyle = i % 2 ? b : a; g.fillRect(i * w, 0, w, 256); }
+  g.fillStyle = 'rgba(0,0,0,.08)'; for (let i = 0; i < 3000; i++) g.fillRect(Math.random() * 256, Math.random() * 256, 1, 1);
+  return tex(c);
+}
+function tileTexture() {
+  const [c, g] = canvas(256, 256);
+  g.fillStyle = '#1f6f8b'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    const x = i * 64 + 32, y = j * 64 + 32;
+    g.fillStyle = '#e9d9a6'; g.beginPath(); g.moveTo(x, y - 26); g.lineTo(x + 26, y); g.lineTo(x, y + 26); g.lineTo(x - 26, y); g.fill();
+    g.fillStyle = '#0f3d5c'; g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill();
+    g.fillStyle = '#c9a24a'; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
+  }
+  return tex(c, 1);
+}
+const M = {
+  wood: new THREE.MeshStandardMaterial({ map: lightWood, color: 0xa87a52, roughness: 0.8 }),
+  clay: new THREE.MeshStandardMaterial({ color: 0xb5643a, roughness: 0.85 }),
+  sack: new THREE.MeshStandardMaterial({ color: 0xa88a5c, roughness: 1 }),
+  basket: new THREE.MeshStandardMaterial({ color: 0xa8834f, roughness: 1 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xc89b3c, roughness: 0.35, metalness: 0.8 }),
+  glow: new THREE.MeshStandardMaterial({ color: 0xffb35a, emissive: 0xff9a3a, emissiveIntensity: 2.2 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xd8bf94, roughness: 0.95 }),
+  tiles: new THREE.MeshStandardMaterial({ map: tileTexture(), roughness: 0.5 }),
+  dome: new THREE.MeshStandardMaterial({ color: 0x2f8fa8, roughness: 0.35, metalness: 0.1 }),
+  trunk: new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 1 }),
+  leaf: new THREE.MeshStandardMaterial({ color: 0x5f7d3a, roughness: 0.9, side: THREE.DoubleSide }),
+};
+const SPICES = [0xb3261e, 0xd9711c, 0xe2b31f, 0x7a3d1c, 0x6e7d2b, 0xc24d2c];
+const add3 = (g, geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); return o; };
+const JAR = new THREE.LatheGeometry([[0, 0], [0.12, 0], [0.2, 0.12], [0.22, 0.25], [0.16, 0.42], [0.09, 0.5], [0.1, 0.56], [0, 0.56]].map(p => new THREE.Vector2(p[0], p[1])), 24);
+function stall(x, z, yaw, a, b) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = yaw; bazaar.add(g);
+  for (const [px, pz] of [[-1.5, -1], [1.5, -1], [-1.5, 1], [1.5, 1]]) add3(g, new THREE.CylinderGeometry(0.05, 0.06, 2.6, 8), M.wood, px, 1.3, pz);
+  const cg = new THREE.PlaneGeometry(3.4, 2.4, 16, 10); cg.rotateX(-Math.PI / 2);
+  const cp = cg.attributes.position;
+  for (let i = 0; i < cp.count; i++) { const u = cp.getX(i) / 1.7, v = cp.getZ(i) / 1.2; cp.setY(i, -0.18 * (1 - u * u) * (1 - v * v) + v * 0.25); }
+  cg.computeVertexNormals();
+  const canopy = add3(g, cg, new THREE.MeshStandardMaterial({ map: stripeTexture(a, b), roughness: 0.9, side: THREE.DoubleSide }), 0, 2.62, 0);
+  canopy.castShadow = true;
+  add3(g, new THREE.BoxGeometry(2.8, 0.08, 1.2), M.wood, 0, 0.8, 0.2);
+  for (const [px, pz] of [[-1.3, -0.3], [1.3, -0.3], [-1.3, 0.7], [1.3, 0.7]]) add3(g, new THREE.BoxGeometry(0.07, 0.8, 0.07), M.wood, px, 0.4, pz);
+  for (let i = 0; i < 5; i++) {                                       // spice cones in baskets
+    const sx = -1.1 + i * 0.55;
+    add3(g, new THREE.CylinderGeometry(0.22, 0.18, 0.14, 16, 1, true), M.basket, sx, 0.91, 0.25).material.side = THREE.DoubleSide;
+    add3(g, new THREE.ConeGeometry(0.21, 0.24 + Math.random() * 0.1, 18), new THREE.MeshStandardMaterial({ color: SPICES[(i + Math.floor(x)) % SPICES.length], roughness: 1 }), sx, 1.06, 0.25);
+  }
+  for (let i = 0; i < 4; i++) {                                       // sacks on the ground
+    const s = add3(g, new THREE.SphereGeometry(0.28, 16, 12), M.sack, -1.2 + i * 0.75, 0.26, 1.15); s.scale.set(1, 1.2, 1);
+    add3(g, new THREE.ConeGeometry(0.09, 0.16, 10), M.sack, -1.2 + i * 0.75, 0.62, 1.15);
+  }
+  for (let i = 0; i < 3; i++) { const j = add3(g, JAR, M.clay, -1.6 + i * 0.4, 0, -0.7 - (i % 2) * 0.25); j.scale.setScalar(0.9 + Math.random() * 0.4); }
+  const carpets = [0x7a1f1a, 0x1d2a4a, 0x8a5a1a];
+  for (let i = 0; i < 3; i++) { const r = add3(g, new THREE.CylinderGeometry(0.13, 0.13, 1.6, 16), new THREE.MeshStandardMaterial({ map: carpetTex, color: carpets[i], roughness: 1 }), 1.15 + i * 0.05, 0.13 + i * 0.25, -0.65); r.rotation.x = Math.PI / 2; r.rotation.z = 0.15 * i; }
+  const lantern = new THREE.Group(); lantern.position.set(0, 2.25, 1.05); g.add(lantern);   // brass lantern hanging from the front beam
+  add3(lantern, new THREE.CylinderGeometry(0.008, 0.008, 0.3, 4), M.brass, 0, 0.15, 0);
+  add3(lantern, new THREE.SphereGeometry(0.09, 12, 10), M.glow, 0, -0.08, 0);
+  add3(lantern, new THREE.ConeGeometry(0.11, 0.1, 8), M.brass, 0, 0.03, 0);
+  lanterns.push(lantern);
+  return g;
+}
+const lanterns = [];
+const carpetTex = carpetTexture();
+stall(-7.6, -8.4, 0.55, '#b3261e', '#f1e3c6');
+stall(-2.6, -10.2, 0.12, '#1f6f8b', '#f1e3c6');
+stall(2.8, -10.2, -0.12, '#d9a640', '#7a1f1a');
+stall(7.8, -8.4, -0.55, '#2d5f3a', '#f1e3c6');
+stall(-10.6, -2.4, 1.3, '#7a1f1a', '#e9c27a');
+stall(10.6, -2.4, -1.3, '#1d2a4a', '#e9c27a');
+
+{ // caravanserai gate: tiled portal with a pointed arch and two domed towers
+  const g = new THREE.Group(); g.position.set(0, 0, -21); bazaar.add(g);
+  const s = new THREE.Shape(); s.moveTo(-4.5, 0); s.lineTo(4.5, 0); s.lineTo(4.5, 8); s.lineTo(-4.5, 8); s.lineTo(-4.5, 0);
+  const arch = new THREE.Path(); arch.moveTo(-1.8, 0); arch.lineTo(-1.8, 4); arch.quadraticCurveTo(-1.6, 6.2, 0, 6.8); arch.quadraticCurveTo(1.6, 6.2, 1.8, 4); arch.lineTo(1.8, 0); arch.lineTo(-1.8, 0);
+  s.holes.push(arch);
+  const portal = new THREE.ExtrudeGeometry(s, { depth: 1.2, bevelEnabled: false });
+  const uv = portal.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 0.7, uv.getY(i) * 0.7);
+  add3(g, portal, [M.tiles, M.wall], 0, 0, 0);
+  add3(g, new THREE.BoxGeometry(22, 4.2, 1), M.wall, 0, 2.1, -0.3);
+  for (const x of [-5.6, 5.6]) {
+    add3(g, new THREE.CylinderGeometry(0.9, 1.05, 10, 20), M.tiles, x, 5, 0.6);
+    add3(g, new THREE.SphereGeometry(1.0, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.dome, x, 10, 0.6);
+  }
+  add3(g, new THREE.SphereGeometry(2.6, 24, 14, 0, Math.PI * 2, 0, Math.PI / 2), M.dome, 0, 8, -2.5);
+}
+function palm(x, z, h) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); bazaar.add(g);
+  const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.3, h * 0.35, 0.1), new THREE.Vector3(0.2, h * 0.7, 0.3), new THREE.Vector3(-0.2, h, 0.2)];
+  const trunk = add3(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 20, 0.18, 8), M.trunk, 0, 0, 0);
+  const top = pts[3];
+  for (let i = 0; i < 10; i++) {
+    const a = i / 10 * Math.PI * 2, lg = new THREE.PlaneGeometry(2.6, 0.5, 10, 1), lp = lg.attributes.position;
+    for (let j = 0; j < lp.count; j++) { const u = (lp.getX(j) + 1.3) / 2.6; lp.setX(j, lp.getX(j) + 1.3); lp.setY(j, lp.getY(j) * (1 - u) - u * u * 1.0); }
+    lg.computeVertexNormals();
+    const leaf = add3(g, lg, M.leaf, top.x, top.y, top.z); leaf.rotation.set(0.3 * Math.sin(i), a, 0.15);
+  }
+  return trunk;
+}
+palm(-13, -13, 6.5); palm(-15.5, -6, 5.5); palm(14, -12, 7); palm(16, -4, 5.8); palm(-12, 9, 6); palm(13.5, 10, 6.3);
+
+// dust in the light
+const dustGeo = new THREE.BufferGeometry(), DN = 500, dp = new Float32Array(DN * 3);
+for (let i = 0; i < DN; i++) { dp[i * 3] = (Math.random() - 0.5) * 18; dp[i * 3 + 1] = 0.3 + Math.random() * 4.5; dp[i * 3 + 2] = (Math.random() - 0.5) * 18; }
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dp, 3));
+const dustTex = (() => { const [c, g] = canvas(64, 64); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,240,210,1)'); gr.addColorStop(1, 'rgba(255,240,210,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return tex(c); })();
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ size: 0.06, map: dustTex, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+scene.add(dust);
+// birds circling high over the market
+const birds = [...Array(6)].map((_, i) => {
+  const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.6, 0.15, 0), new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.6, 0.15, 0)]);
+  const b = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x3a2a24 })); b.userData = { r: 16 + i * 3, h: 13 + (i % 3) * 2, s: 0.05 + i * 0.008, a: i };
+  scene.add(b); return b;
+});
+const marketCamels = [];
+function addMarketCamels() {                      // real camels resting by the stalls, sand-coloured and breathing
+  const fur = new THREE.MeshStandardMaterial({ color: 0xc8a272, roughness: 0.92 }), furV = fur.clone(); furV.vertexColors = true;
+  for (const [file, x, z, yaw, s] of [['aruana', -5.2, -7.2, 0.9, 3.1], ['nar', 5.4, -7.4, 2.4, 3.0], ['baktrian', -9.6, 1.6, 1.8, 3.2], ['dromedar', 9.8, 2.2, -1.9, 3.0]]) {
+    const T = TYPES.find(t => t.file === file); const c = sculpted(T, fur, furV); if (!c) continue;
+    c.children[0].visible = false;                 // no figurine base for a living camel
+    c.position.set(x, -0.08 * s, z); c.scale.setScalar(s); c.rotation.y = yaw; c.userData.kind = 'camel';
+    scene.add(c); marketCamels.push(c);
+  }
+}
+function animateWorld(now, dt) {
+  const t = now / 1000, p = dustGeo.attributes.position;
+  for (let i = 0; i < DN; i++) { p.array[i * 3 + 1] += Math.sin(t * 0.3 + i) * 0.0008; p.array[i * 3] += Math.cos(t * 0.2 + i * 0.7) * 0.0006; }
+  p.needsUpdate = true;
+  for (const b of birds) { const u = b.userData, a = t * u.s + u.a; b.position.set(Math.cos(a) * u.r, u.h + Math.sin(t + u.a) * 0.5, Math.sin(a) * u.r - 6); b.rotation.y = -a; b.scale.y = 1 + 0.6 * Math.sin(t * 6 + u.a); }
+  lanterns.forEach((l, i) => { l.rotation.z = Math.sin(t * 0.9 + i) * 0.06; l.children[1].material.emissiveIntensity = 2 + Math.sin(t * 7 + i * 3) * 0.25; });
+  for (const c of marketCamels) animateRig(c, dt);
+  animatePeople(now, dt);
+  animateLife(now, dt);
+}
+// ---------- Bazaar people ----------
+// Merchants behind every stall show their goods and call out with a raised hand; shoppers stand haggling
+// in front of the stalls; passers-by stroll along the row behind the board. Sculpted in tools/people.py.
+const PEOPLE = {}, folk = [];
+const ROBES = [0x6b2a2a, 0x2d4a6b, 0x3f5a2e, 0x7a5a2a, 0x4a2e5a, 0x8a3f1f, 0x2a4a4a, 0x5a3a24];
+const SKINS = [0xc08a5e, 0xa8734c, 0xd1a07a, 0x9a6a46];
+const HATS = [0xece4d2, 0xe2d2b0, 0x3a2a1a, 0x7a1f1a, 0xf2ece0];
+async function loadPeople() {
+  try {
+    const loader = new GLTFLoader();
+    const piv = await (await fetch('../figures/people.json', { cache: 'no-cache' })).json();
+    await Promise.all(['man_turban', 'man_kalpak', 'woman'].map(async n => {
+      const j = await (await fetch('../figures/' + n + '.json?v=' + ASSET_V)).json();
+      const g = await loader.parseAsync(Uint8Array.from(atob(j.glb), ch => ch.charCodeAt(0)).buffer, ''), parts = {};
+      g.scene.traverse(o => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); parts[o.name || o.parent.name] = o.geometry; } });
+      PEOPLE[n] = { parts, pivots: piv[n] };
+    }));
+  } catch (e) { console.warn('bazaar people not loaded', e); }
+}
+const clothMat = (c, rough = 0.85) => new THREE.MeshStandardMaterial({ color: c, roughness: rough, vertexColors: true });
+const pickOf = (a, i) => a[Math.abs(Math.floor(i)) % a.length];
+function person(type, seed) {
+  const P = PEOPLE[type]; if (!P) return null;
+  const robe = clothMat(pickOf(ROBES, seed * 3 + 1)), skin = clothMat(pickOf(SKINS, seed), 0.6);
+  const mats = { robe, sash: clothMat(pickOf([0xc9a24a, 0xb3261e, 0x1f6f8b, 0xe9d9a6], seed + 2)), boots: clothMat(0x3a2418, 0.7),
+    head: skin, beard: clothMat(pickOf([0x2a1d14, 0x4a3a2a, 0x8a8478], seed + 1), 1), hat: clothMat(pickOf(HATS, seed * 7 + 3)),
+    arm_l: robe, arm_r: robe, hand_l: skin, hand_r: skin };
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const head = new THREE.Group(); head.position.set(...(P.pivots.head || [0, 1.47, 0])); body.add(head);
+  const arms = {};
+  for (const s of ['l', 'r']) { const a = new THREE.Group(); a.position.set(...P.pivots['arm_' + s]); body.add(a); arms[s] = a; }
+  for (const [name, geo] of Object.entries(P.parts)) {
+    const host = ['head', 'beard', 'hat'].includes(name) ? head : name.endsWith('_l') ? arms.l : name.endsWith('_r') ? arms.r : body;
+    const m = new THREE.Mesh(geo, mats[name] || robe); m.castShadow = true; m.receiveShadow = true; host.add(m);
+  }
+  g.userData = { body, head, arms, seed, mode: 'idle', next: 0 };
+  return g;
+}
+async function addBazaarPeople() {
+  await loadPeople(); if (!PEOPLE.man_turban) return;
+  const stalls = bazaar.children.filter(o => o.isGroup && o.children.length > 20);
+  stalls.forEach((st, i) => {                                  // a merchant behind each table, a shopper in front of some
+    const m = person(i % 2 ? 'man_kalpak' : 'man_turban', i * 5 + 1); m.position.set(0, 0, -0.45); m.rotation.y = -Math.PI / 2; m.scale.setScalar(1.02);
+    m.userData.role = 'merchant'; st.add(m); folk.push(m);
+    if (i % 2 === 0) {
+      const c = person(i % 4 ? 'man_turban' : 'woman', i * 3 + 4); c.position.set(0.5 - (i % 3) * 0.4, 0, 1.75); c.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.4;
+      c.userData.role = 'shopper'; st.add(c); folk.push(c);
+    }
+  });
+  for (let i = 0; i < 6; i++) {                               // passers-by along the market row behind the board
+    const w = person(['woman', 'man_turban', 'man_kalpak'][i % 3], i * 11 + 7);
+    w.userData.role = 'walker'; w.userData.path = { mid: -Math.PI / 2 + (i - 2.5) * 0.18, amp: 0.55 + (i % 3) * 0.12, speed: 0.06 + (i % 4) * 0.012, ph: i * 1.7, r: 7.6 + (i % 2) * 0.7 };
+    scene.add(w); folk.push(w);
+  }
+}
+function animatePeople(now, dt) {
+  const t = now / 1000;
+  for (const f of folk) {
+    const u = f.userData, s = u.seed;
+    if (u.role === 'walker') {                                  // stroll back and forth along an arc of the market
+      const P = u.path, a = P.mid + P.amp * Math.sin(t * P.speed + P.ph), da = P.amp * P.speed * Math.cos(t * P.speed + P.ph);
+      const x = Math.cos(a) * P.r * 1.12, z = Math.sin(a) * P.r - 0.6;
+      const pace = Math.min(1, Math.abs(da) * 14);
+      f.position.set(x, 0.03 * pace * Math.abs(Math.sin(t * 7 + s)), z);
+      const tx = -Math.sin(a) * Math.sign(da || 1), tz = Math.cos(a) * Math.sign(da || 1);
+      f.rotation.y += angDiff(f.rotation.y, Math.atan2(-tz, tx)) * 0.08;
+      u.arms.l.rotation.z = 0.3 * pace * Math.sin(t * 7 + s); u.arms.r.rotation.z = -0.3 * pace * Math.sin(t * 7 + s);
+      u.body.rotation.x = 0.03 * pace * Math.sin(t * 7 + s);
+      u.head.rotation.y = 0.3 * Math.sin(t * 0.4 + s);
+      continue;
+    }
+    // merchants and shoppers: breathe, look around, and every few seconds raise a hand to show or call out
+    if (t > u.next) { u.mode = Math.random() < (u.role === 'merchant' ? 0.55 : 0.35) ? 'gesture' : 'idle'; u.next = t + 2 + Math.random() * 3.5; u.look = (Math.random() - 0.5) * 1.1; u.t0 = t; }
+    const g = u.mode === 'gesture' ? Math.sin(Math.min(1, (t - u.t0) / 0.6) * Math.PI / 2) * (1 - Math.max(0, (t - u.t0 - 1.6) / 0.6)) : 0;
+    const gg = Math.max(0, g);
+    u.arms.r.rotation.z = gg * (u.role === 'merchant' ? 1.25 : 0.8) + 0.05 * Math.sin(t * 1.3 + s);
+    u.arms.r.rotation.x = -gg * 0.35 * Math.sin(t * 5 + s) - gg * 0.2;
+    u.arms.l.rotation.z = gg * 0.35 + 0.04 * Math.sin(t * 1.1 + s + 1);
+    u.head.rotation.y += ((u.look || 0) - u.head.rotation.y) * 0.04;
+    u.head.rotation.z = 0.04 * Math.sin(t * 0.9 + s) + gg * 0.08;
+    u.body.scale.y = 1 + 0.01 * Math.sin(t * 1.6 + s);
+    u.body.rotation.z = 0.02 * Math.sin(t * 0.7 + s);
+  }
+}
+
+
+
+const frameShape = new THREE.Shape(wavyFrame(4.75, 0.12));
+const hole = new THREE.Path(); const H = 3.95;
+hole.moveTo(-H, -H); hole.lineTo(H, -H); hole.lineTo(H, H); hole.lineTo(-H, H); hole.lineTo(-H, -H);
+frameShape.holes.push(hole);
+const frameGeo = new THREE.ExtrudeGeometry(frameShape, { depth: 0.34, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.09, bevelSegments: 5, curveSegments: 24 });
+frameGeo.rotateX(-Math.PI / 2);
+const frameUV = frameGeo.attributes.uv; for (let i = 0; i < frameUV.count; i++) frameUV.setXY(i, frameUV.getX(i) * 0.11, frameUV.getY(i) * 0.11);
+const frame = new THREE.Mesh(frameGeo, new THREE.MeshPhysicalMaterial({ map: lightWood, roughness: 0.55, clearcoat: 0.25, clearcoatRoughness: 0.5, envMapIntensity: 0.7 }));
+frame.position.y = 0.0; frame.castShadow = frame.receiveShadow = true; scene.add(frame);
+
+const panel = new THREE.Mesh(new THREE.BoxGeometry(2 * H, TOP, 2 * H),
+  new THREE.MeshPhysicalMaterial({ map: darkWood, roughness: 0.62, clearcoat: 0.18, clearcoatRoughness: 0.55, envMapIntensity: 0.6 }));
+panel.position.y = TOP / 2; panel.receiveShadow = true; scene.add(panel);
+// the fold of the travel case across the middle
+const fold = new THREE.Mesh(new THREE.BoxGeometry(2 * H, 0.004, 0.018), new THREE.MeshStandardMaterial({ color: 0x120603 }));
+fold.position.set(0, TOP + 0.002, 0); scene.add(fold);
+
+const inlayMat = new THREE.MeshStandardMaterial({ color: 0xf1cf92, roughness: 0.45 });
+for (const [a, b] of EDGES) {
+  const pa = pos(a), pb = pos(b), len = pa.distanceTo(pb);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(len, 0.01, 0.045), inlayMat);
+  m.position.copy(pa).add(pb).multiplyScalar(0.5); m.position.y = TOP + 0.003;
+  m.rotation.y = -Math.atan2(pb.z - pa.z, pb.x - pa.x);
+  m.receiveShadow = true; scene.add(m);
+}
+
+const discs = [];
+const discGeo = new THREE.CylinderGeometry(0.39, 0.39, 0.04, 64);
+const rimDark = new THREE.MeshStandardMaterial({ color: 0x141826, roughness: 0.5 });
+const rimGold = new THREE.MeshStandardMaterial({ color: 0xb98a22, roughness: 0.4, metalness: 0.2 });
+function buildDiscs() {
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const dark = (r + c) % 2 === 0;
+    const top = new THREE.MeshPhysicalMaterial({ map: discTexture(r, c), roughness: dark ? 0.62 : 0.72, clearcoat: dark ? 0.12 : 0.06, clearcoatRoughness: 0.6, envMapIntensity: dark ? 0.6 : 0.45 });
+    const m = new THREE.Mesh(discGeo, [dark ? rimDark : rimGold, top, dark ? rimDark : rimGold]);
+    m.position.copy(pos(k(r, c))); m.position.y = TOP + 0.02;
+    m.rotation.y = Math.PI / 2;   // so the text reads from the brown side
+    m.receiveShadow = true; m.castShadow = true;
+    m.userData.cell = k(r, c);
+    scene.add(m); discs.push(m);
+  }
+}
+
+// ---------- Bazaar life: life-size camels and people (tools/fauna.py) ----------
+// A drover leads a loaded caravan along the road between the stalls and the gate; camels rest by the stalls,
+// chewing; merchants call out and hold out their goods; shoppers bargain; passers-by carry sacks and jars.
+const FAUNA = {}, life = [];
+async function loadFauna() {
+  try {
+    const loader = new GLTFLoader();
+    const piv = await (await fetch('../figures/fauna.json', { cache: 'no-cache' })).json();
+    await Promise.all(Object.keys(piv).map(async n => {
+      const j = await (await fetch('../figures/' + n + '.json?v=' + ASSET_V)).json();
+      const g = await loader.parseAsync(Uint8Array.from(atob(j.glb), ch => ch.charCodeAt(0)).buffer, ''), parts = {};
+      g.scene.traverse(o => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); parts[o.name || o.parent.name] = o.geometry; } });
+      FAUNA[n] = { parts, pivots: piv[n] };
+    }));
+  } catch (e) { console.warn('bazaar life not loaded', e); }
+}
+const furMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.95, sheen: 0.8, sheenColor: 0xffe2b8, sheenRoughness: 0.75 });
+const tint = (c, r = 0.88) => new THREE.MeshStandardMaterial({ color: c, roughness: r, vertexColors: true });
+const ROBE_C = [0x2c3e5c, 0x7d2a22, 0x9a7a3a, 0x5a5a32, 0x6a5440, 0x3e2e44, 0x7a4a2a, 0x2f4a48];
+const SKIN_C = [0xb57a52, 0x9c6844, 0xc89470, 0x8a5a3a];
+// build a rig: every part on its pivot; lower legs hang from their upper leg's knee
+function rigFrom(name, matFor) {
+  const F = FAUNA[name]; if (!F) return null;
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const groups = {}, legs = [];
+  const groupAt = p => { const key = p.join(','); if (!groups[key]) { const q = new THREE.Group(); q.position.set(...p); body.add(q); groups[key] = q; } return groups[key]; };
+  for (const [part, geo] of Object.entries(F.parts)) {
+    if (part.endsWith('_lo')) continue;
+    const pv = F.pivots[part], host = pv ? groupAt(pv) : body;
+    const m = new THREE.Mesh(geo, matFor(part)); m.castShadow = true; m.receiveShadow = true; host.add(m);
+    if (part.startsWith('leg_')) {
+      const lo = F.parts[part + '_lo'], kn = F.pivots[part + '_lo'];
+      const lower = new THREE.Group(); lower.position.set(kn[0] - pv[0], kn[1] - pv[1], kn[2] - pv[2]); host.add(lower);
+      const lm = new THREE.Mesh(lo, matFor(part + '_lo')); lm.castShadow = true; lower.add(lm);
+      legs.push({ pivot: host, lower, front: part.includes('front'), left: part.includes('_l') });
+    }
+  }
+  const at = n => F.pivots[n] ? groups[F.pivots[n].join(',')] : null;
+  g.userData = { body, legs, head: at('head'), tail: at('tail'), armL: at('arm_l'), armR: at('arm_r'), ph: Math.random() * 6, seed: Math.random() * 50 };
+  return g;
+}
+const bagMat = new THREE.MeshStandardMaterial({ color: 0xc0504a, roughness: 0.95, vertexColors: true });   // woven khurjin over the tan fur shade
+function camelRig(kind) { return rigFrom(kind, part => part === 'bags' ? bagMat : furMat); }
+function folkRig(kind, i) {
+  const robe = tint(ROBE_C[i % ROBE_C.length]), skin = tint(SKIN_C[i % SKIN_C.length], 0.6);
+  const M = { robe, sash: tint([0xc9a24a, 0x9b2a20, 0x1f6f8b, 0xd8c79a][i % 4]), head: skin, hand_l: skin, hand_r: skin, arm_l: robe, arm_r: robe,
+    beard: tint([0x2a1d14, 0x3e2e22, 0x8a8478][i % 3], 1), hat: tint(kindHat(kindOf(i)), 0.9), leg_l: tint(0x3a352e), leg_r: tint(0x3a352e),
+    leg_l_lo: tint(0x2a1d14, 0.7), leg_r_lo: tint(0x2a1d14, 0.7), shoe_l: tint(0x2a1d14, 0.7), shoe_r: tint(0x2a1d14, 0.7) };
+  const g = rigFrom('folk_' + kind, part => M[part] || robe);
+  if (g) g.userData.kind = kind;
+  return g;
+}
+const kindOf = i => ['turban', 'kalpak', 'tubeteika', 'woman'][i % 4];
+const kindHat = k => ({ turban: 0xece4d2, kalpak: 0xeee6d6, tubeteika: 0x2a2a3a, woman: 0xf4efe4 }[k]);
+function prop(name, mat) { const F = FAUNA.props; if (!F) return null; const m = new THREE.Mesh(F.parts[name], mat); m.castShadow = true; return m; }
+
+// a walk cycle shared by camels (pacing) and people: stance with the foot planted, swing with the knee folding
+function stride(u, ph, amount, human) {
+  for (const L of u.legs) {
+    const off = human ? (L.left ? 0 : Math.PI) : (L.left ? 0 : Math.PI);
+    const c = (((ph + off) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / (2 * Math.PI), A = human ? 0.36 : (L.front ? 0.3 : 0.26);
+    let hip, knee;
+    if (c < 0.6) { hip = A * (1 - 2 * c / 0.6); knee = human ? -0.06 : 0; }
+    else { const s = (c - 0.6) / 0.4, e = s * s * (3 - 2 * s); hip = A * (-1 + 2 * e); knee = Math.sin(Math.PI * s) * (human ? -1.05 : (L.front ? -0.85 : 0.75)); }
+    L.pivot.rotation.z = amount * hip; L.lower.rotation.z = amount * knee;
+  }
+}
+const ROAD_Z = -14.6;
+async function addBazaarLife() {
+  await loadFauna(); if (!FAUNA.camel_stand) return;
+  // resting camels by the stalls
+  for (const [x, z, yaw] of [[-5.6, -7.6, 0.4], [6.0, -7.8, 2.7], [-9.8, 3.0, 1.2]]) {
+    const c = camelRig('camel_rest'); c.position.set(x, 0, z); c.rotation.y = yaw; c.userData.role = 'rest'; scene.add(c); life.push(c);
+  }
+  // the caravan on the road: a drover and three loaded camels
+  const drover = folkRig('turban', 1); drover.userData.role = 'drover'; drover.userData.s = 0; scene.add(drover); life.push(drover);
+  for (let i = 0; i < 3; i++) { const c = camelRig('camel_stand'); c.userData.role = 'caravan'; c.userData.i = i; scene.add(c); life.push(c); }
+  const rope = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0x4a3622 }));
+  scene.add(rope); drover.userData.rope = rope;
+  // merchants, one behind each stall, and shoppers in front of some
+  const stalls = bazaar.children.filter(o => o.isGroup && o.children.length > 20);
+  stalls.forEach((st, i) => {
+    const m = folkRig(['turban', 'kalpak', 'tubeteika'][i % 3], i + 3); m.position.set(0, 0, -0.5); m.rotation.y = -Math.PI / 2;
+    m.userData.role = 'merchant'; st.add(m); life.push(m);
+    if (i % 2 === 0) {
+      const c = folkRig(i % 4 ? 'kalpak' : 'woman', i + 9); c.position.set(0.4 - (i % 3) * 0.5, 0, 1.8); c.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+      c.userData.role = 'shopper'; st.add(c); life.push(c);
+    }
+  });
+  // passers-by along the market row behind the board
+  const loads = ['sack', null, 'jar', null, 'sack'];
+  for (let i = 0; i < 5; i++) {
+    const kind = loads[i] === 'jar' ? 'woman' : ['kalpak', 'turban', 'tubeteika'][i % 3];
+    const w = folkRig(kind, i + 14); w.userData.role = 'walker';
+    w.userData.path = { mid: -Math.PI / 2 + (i - 2) * 0.22, amp: 0.5 + (i % 3) * 0.13, speed: 0.05 + (i % 4) * 0.01, ph: i * 1.9, r: 7.7 + (i % 2) * 0.6 };
+    if (loads[i] && w.userData.armR) {
+      const p = prop(loads[i], tint(loads[i] === 'jar' ? 0xb5643a : 0xa88a5c, 1));
+      if (loads[i] === 'jar') { p.position.set(0, 1.79, 0); w.userData.body.add(p); w.userData.carry = 'head'; }
+      else { p.position.set(-0.02, 1.58, -0.17); p.rotation.set(0, 0.3, 0.15); w.userData.body.add(p); w.userData.carry = 'shoulder'; }
+    }
+    scene.add(w); life.push(w);
+  }
+}
+function animateLife(now, dt) {
+  const t = now / 1000;
+  let drover = null;
+  for (const o of life) {
+    const u = o.userData, sd = u.seed;
+    if (u.head && u.role !== 'caravan' && u.role !== 'drover') {           // look around, now and then
+      if (!u.look || t > u.look.until) u.look = { yaw: (Math.random() - 0.5) * 0.9, until: t + 2 + Math.random() * 5 };
+      u.head.rotation.y += (u.look.yaw - u.head.rotation.y) * 0.03;
+    }
+    if (u.tail) u.tail.rotation.x = 0.12 * Math.sin(t * 1.3 + sd) + 0.4 * Math.max(0, Math.sin(t * 0.6 + sd)) ** 14 * Math.sin(t * 13);
+    if (u.role === 'rest') { u.head.rotation.z = 0.04 * Math.sin(t * 0.8 + sd) + 0.015 * Math.sin(t * 9 + sd); continue; }   // chewing
+    if (u.role === 'drover') {
+      drover = o; u.s = (u.s + dt * 0.85) % 60;
+      const x = -30 + u.s; o.position.set(x, 0, ROAD_Z); o.rotation.y = 0;
+      u.ph += dt * 5.0; stride(u, u.ph, 1, true);
+      u.armL.rotation.z = -0.3 * Math.sin(u.ph); u.armR.rotation.z = -0.55; u.armR.rotation.x = -0.15;   // holding the lead rope behind him
+      u.body.position.y = 0.025 * Math.abs(Math.cos(u.ph));
+      continue;
+    }
+    if (u.role === 'caravan') {
+      const d = life.find(x => x.userData.role === 'drover');
+      const x = d.position.x - 2.4 - u.i * 2.7;
+      o.position.set(x, 0, ROAD_Z + Math.sin(x * 0.15 + u.i) * 0.15); o.rotation.y = 0;
+      u.ph += dt * 3.6; stride(u, u.ph, 1, false);
+      u.body.rotation.x = 0.03 * Math.sin(u.ph); u.body.position.y = 0.02 * Math.cos(u.ph * 2);
+      if (u.head) u.head.rotation.z = 0.06 * Math.sin(u.ph * 2);
+      o.visible = x > -26;
+      continue;
+    }
+    if (u.role === 'walker') {
+      const P = u.path, a = P.mid + P.amp * Math.sin(t * P.speed + P.ph), da = P.amp * P.speed * Math.cos(t * P.speed + P.ph);
+      const pace = Math.min(1, Math.abs(da) * 13);
+      o.position.set(Math.cos(a) * P.r * 1.12, 0, Math.sin(a) * P.r - 0.6);
+      const dir = Math.sign(da || 1), tx = -Math.sin(a) * dir, tz = Math.cos(a) * dir;
+      o.rotation.y += angDiff(o.rotation.y, Math.atan2(-tz, tx)) * 0.08;
+      u.ph += dt * 5.2 * pace;
+      if (u.legs.length) stride(u, u.ph, pace, true);
+      u.body.position.y = 0.025 * pace * Math.abs(Math.cos(u.ph));
+      u.body.rotation.x = 0.025 * pace * Math.sin(u.ph);
+      if (u.carry === 'head') { u.armR.rotation.z = 2.7; u.armR.rotation.x = -0.25; u.armL.rotation.z = -0.25 * pace * Math.sin(u.ph); }
+      else if (u.carry === 'shoulder') { u.armR.rotation.z = 2.2; u.armR.rotation.x = 0.3; u.armL.rotation.z = -0.3 * pace * Math.sin(u.ph); }
+      else { u.armL.rotation.z = -0.3 * pace * Math.sin(u.ph); u.armR.rotation.z = 0.3 * pace * Math.sin(u.ph); }
+      continue;
+    }
+    // merchants and shoppers
+    if (!u.next || t > u.next) { u.mode = Math.random() < (u.role === 'merchant' ? 0.55 : 0.4) ? (Math.random() < 0.5 ? 'call' : 'offer') : 'idle'; u.next = t + 2.2 + Math.random() * 3.5; u.t0 = t; }
+    const k = u.mode === 'idle' ? 0 : Math.max(0, Math.sin(Math.min(1, (t - u.t0) / 0.6) * Math.PI / 2) * (1 - Math.max(0, (t - u.t0 - 1.7) / 0.6)));
+    if (u.mode === 'call') { u.armR.rotation.z = k * 2.3; u.armR.rotation.x = -k * (0.2 + 0.25 * Math.sin(t * 6 + sd)); u.armL.rotation.z = 0.05; }
+    else { u.armR.rotation.z = k * 1.1; u.armL.rotation.z = k * 1.0; u.armR.rotation.x = -0.1 * k; u.armL.rotation.x = 0.1 * k; }
+    if (u.head) u.head.rotation.z = 0.05 * Math.sin(t * 1.1 + sd) + (u.mode === 'call' ? 0.12 * k : 0);
+    u.body.scale.y = 1 + 0.008 * Math.sin(t * 1.6 + sd);
+  }
+  if (drover) {                                                   // the lead rope from the drover's hand to the first camel's halter
+    const a = new THREE.Vector3(-0.15, 1.0, -0.22).applyMatrix4(drover.matrixWorld);
+    const c1 = life.find(x => x.userData.role === 'caravan' && x.userData.i === 0);
+    const b = new THREE.Vector3(1.85, 2.05, 0).applyMatrix4(c1.matrixWorld);
+    const p = drover.userData.rope.geometry.attributes.position; p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, b.x, b.y, b.z); p.needsUpdate = true;
+    drover.userData.rope.geometry.computeBoundingSphere();
+  }
+}
+
+// ---------- Figures ----------
+// Sculpted resin figures: bodies, necks and legs are lofted tubes with a varying cross-section,
+// so they read as one smooth carving rather than glued spheres.
+const MAT = {
+  b: new THREE.MeshPhysicalMaterial({ color: 0x5e2410, roughness: 0.42, clearcoat: 0.55, clearcoatRoughness: 0.3, sheen: 0.6, sheenColor: 0xd9824a }),
+  w: new THREE.MeshPhysicalMaterial({ color: 0xb8a684, roughness: 0.58, clearcoat: 0.15, clearcoatRoughness: 0.5, sheen: 0.15, sheenColor: 0xfff4e0 }),
+};
+const V = (x, y, z = 0) => new THREE.Vector3(x, y, z);
+function mesh(g, geo, m, x = 0, y = 0, z = 0) {
+  const o = new THREE.Mesh(geo, m); o.position.set(x, y, z);
+  o.castShadow = o.receiveShadow = true; g.add(o); return o;
+}
+// Loft: spine points [x, y, z, ry, rz] → smooth closed tube; ry = radius across the spine in its plane, rz = sideways.
+function loft(ctrl, seg = 40, rad = 18) {
+  const spine = new THREE.CatmullRomCurve3(ctrl.map(p => V(p[0], p[1], p[2] || 0)), false, 'centripetal');
+  const radii = new THREE.CatmullRomCurve3(ctrl.map(p => V(p[3], p[4] ?? p[3], 0)));
+  const pos = [], idx = [];
+  const up = V(0, 0, 1);
+  for (let i = 0; i <= seg; i++) {
+    const t = i / seg, p = spine.getPoint(t), T = spine.getTangent(t).normalize(), r = radii.getPoint(t);
+    let B = up.clone().sub(T.clone().multiplyScalar(up.dot(T))); if (B.lengthSq() < 1e-6) B = V(1, 0, 0); B.normalize();
+    const N = new THREE.Vector3().crossVectors(B, T).normalize();
+    for (let j = 0; j < rad; j++) {
+      const a = (j / rad) * Math.PI * 2;
+      pos.push(p.x + N.x * Math.cos(a) * r.x + B.x * Math.sin(a) * r.y,
+               p.y + N.y * Math.cos(a) * r.x + B.y * Math.sin(a) * r.y,
+               p.z + N.z * Math.cos(a) * r.x + B.z * Math.sin(a) * r.y);
+    }
+  }
+  for (let i = 0; i < seg; i++) for (let j = 0; j < rad; j++) {
+    const a = i * rad + j, b = i * rad + (j + 1) % rad, c = a + rad, d = b + rad;
+    idx.push(a, c, b, b, c, d);
+  }
+  for (const [i, s] of [[0, 1], [seg, -1]]) {         // end caps
+    const p = spine.getPoint(i / seg), ci = pos.length / 3; pos.push(p.x, p.y, p.z);
+    for (let j = 0; j < rad; j++) { const a = i * rad + j, b = i * rad + (j + 1) % rad; s > 0 ? idx.push(ci, a, b) : idx.push(ci, b, a); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+const ell = (r, sx, sy, sz) => { const g = new THREE.SphereGeometry(r, 28, 20); g.scale(sx, sy, sz); return g; };
+const BASE = new THREE.LatheGeometry([[0, 0], [0.29, 0], [0.305, 0.012], [0.305, 0.03], [0.29, 0.042], [0.275, 0.05], [0.272, 0.066], [0.258, 0.078], [0, 0.08]].map(p => new THREE.Vector2(p[0], p[1])), 64);
+function base(g, m) { mesh(g, BASE, m); }
+// A figure is a root (base + legs on hip pivots) and an upper body group that sways while walking.
+function rigged(m, gait, ownBase) {
+  const root = new THREE.Group(); if (!ownBase) base(root, m);
+  const up = new THREE.Group(); root.add(up);
+  root.userData = { up, legs: [], gait, amp: 0, phase: 0 };
+  return [root, up];
+}
+function leg(g, m, x, z, top, thick, kneeBack) {
+  const geo = loft([[x, top, z, thick, thick * 0.9], [x + kneeBack * 0.4, top - 0.12, z, thick * 0.7, thick * 0.65],
+    [x + kneeBack, 0.27, z, thick * 0.58], [x, 0.15, z, thick * 0.46], [x + 0.01, 0.095, z, thick * 0.62, thick * 0.66]], 16, 12);
+  geo.translate(-x, -top, -z);
+  const host = g.parent && g.parent.userData.legs ? g.parent : g;
+  const pivot = new THREE.Group(); pivot.position.set(x, top, z); host.add(pivot);
+  mesh(pivot, geo, m);
+  if (host.userData.legs) host.userData.legs.push({ pivot, front: x > 0, left: z > 0 });
+}
+function rider(g, m, x, y, opts = {}) {
+  // robe flaring over the saddle, torso, head with turban or helmet, arms forward to the reins
+  mesh(g, new THREE.LatheGeometry([[0, 0], [0.1, 0], [0.085, 0.05], [0.06, 0.12], [0.055, 0.17], [0, 0.19]].map(p => new THREE.Vector2(p[0], p[1])), 28), m, x, y, 0);
+  mesh(g, loft([[x, y + 0.1, 0, 0.055, 0.06], [x + 0.005, y + 0.19, 0, 0.065, 0.075], [x + 0.01, y + 0.23, 0, 0.03]], 12, 14), m);
+  mesh(g, ell(0.048, 1, 1.1, 0.95), m, x + 0.012, y + 0.28, 0);
+  if (opts.helmet) {
+    mesh(g, new THREE.ConeGeometry(0.052, 0.08, 20), m, x + 0.01, y + 0.335, 0);
+    mesh(g, new THREE.CylinderGeometry(0.004, 0.004, 0.05, 6), m, x + 0.01, y + 0.39, 0);
+  } else {
+    const tur = mesh(g, new THREE.TorusGeometry(0.046, 0.017, 10, 24), m, x + 0.01, y + 0.305, 0); tur.rotation.x = Math.PI / 2;
+    mesh(g, ell(0.042, 1, 0.75, 1), m, x + 0.01, y + 0.325, 0);
+  }
+  for (const z of [-1, 1]) {
+    mesh(g, loft([[x + 0.005, y + 0.19, z * 0.06, 0.02], [x + 0.06, y + 0.12, z * 0.07, 0.018], [x + 0.12, y + 0.1, z * 0.04, 0.015]], 10, 10), m);
+    mesh(g, loft([[x, y + 0.03, z * 0.06, 0.03], [x + 0.03, y - 0.06, z * 0.11, 0.025], [x + 0.02, y - 0.14, z * 0.11, 0.02]], 10, 10), m);
+  }
+}
+function camelBody(g, m, twoHumps) {
+  mesh(g, loft([
+    [-0.31, 0.6, 0, 0.012], [-0.27, 0.57, 0, 0.1, 0.095], [-0.19, 0.555, 0, 0.16, 0.14], [-0.04, 0.55, 0, 0.178, 0.158],
+    [0.11, 0.54, 0, 0.16, 0.145], [0.2, 0.52, 0, 0.1, 0.09], [0.27, 0.52, 0, 0.065, 0.06], [0.33, 0.58, 0, 0.05, 0.046],
+    [0.36, 0.68, 0, 0.047, 0.043], [0.375, 0.77, 0, 0.05, 0.045], [0.41, 0.81, 0, 0.055, 0.047], [0.47, 0.805, 0, 0.044, 0.038],
+    [0.52, 0.785, 0, 0.032, 0.03], [0.545, 0.778, 0, 0.012]], 64, 22), m);
+  if (twoHumps) { mesh(g, ell(0.1, 1.05, 1.05, 1.1), m, -0.13, 0.66, 0); mesh(g, ell(0.095, 1.05, 1.05, 1.1), m, 0.05, 0.655, 0); }
+  else mesh(g, ell(0.125, 1.3, 0.95, 0.98), m, -0.05, 0.665, 0);
+  for (const z of [-0.022, 0.022]) mesh(g, new THREE.ConeGeometry(0.012, 0.035, 8), m, 0.395, 0.86, z);
+  mesh(g, loft([[-0.29, 0.58, 0, 0.018], [-0.33, 0.5, 0, 0.014], [-0.32, 0.4, 0, 0.012], [-0.31, 0.37, 0, 0.022]], 14, 8), m);
+  leg(g, m, 0.14, 0.075, 0.5, 0.066, 0.015); leg(g, m, 0.14, -0.075, 0.5, 0.066, 0.015);
+  leg(g, m, -0.18, 0.08, 0.52, 0.08, -0.025); leg(g, m, -0.18, -0.08, 0.52, 0.08, -0.025);
+}
+function saddleCloth(g, m, x, y, w = 0.32) {
+  const c = mesh(g, new THREE.CylinderGeometry(0.16, 0.16, w, 28, 1, true, -1.15, 2.3), m, x, y, 0);
+  c.rotation.set(Math.PI / 2, 0, Math.PI / 2); c.scale.set(1, 1, 0.9); c.material = m.clone(); c.material.side = THREE.DoubleSide;
+  for (const z of [-1, 1]) for (let i = 0; i < 4; i++) mesh(g, ell(0.012, 1, 1.4, 1), m, x - w / 2 + 0.04 + i * (w - 0.08) / 3, y - 0.12, z * 0.15);
+}
+function bundle(g, m, x, y, z, sx, sy, sz) {
+  mesh(g, ell(0.1, sx, sy, sz), m, x, y, z);
+  const band = mesh(g, new THREE.TorusGeometry(0.1, 0.008, 6, 28), m, x, y, z); band.scale.set(sx * 1.02, sy * 1.02, 1); band.rotation.y = Math.PI / 2;
+  band.scale.set(sz * 1.02, sy * 1.02, 1);
+}
+function camel(m, load, humps) {
+  const [root, g] = rigged(m, 'pace');
+  camelBody(g, m, humps === 2);
+  if (load === 'rider') {
+    saddleCloth(g, m, -0.04, 0.68, 0.26);
+    rider(g, m, -0.03, 0.75);
+    bundle(g, m, -0.2, 0.63, 0.12, 0.7, 0.7, 0.5); bundle(g, m, -0.2, 0.63, -0.12, 0.7, 0.7, 0.5);
+  }
+  if (load === 'crate') {
+    saddleCloth(g, m, -0.04, 0.68);
+    const crate = new THREE.Group(); crate.position.set(-0.04, 0.82, 0); g.add(crate);
+    for (let i = 0; i < 4; i++) mesh(crate, new THREE.BoxGeometry(0.3, 0.04, 0.28), m, 0, -0.06 + i * 0.042, 0);
+    for (const x of [-0.13, 0.13]) for (const z of [-0.12, 0.12]) mesh(crate, new THREE.BoxGeometry(0.03, 0.18, 0.03), m, x, 0.0, z);
+    const rope = mesh(crate, new THREE.TorusGeometry(0.17, 0.008, 6, 32), m, 0, -0.02, 0); rope.scale.set(1, 0.75, 1);
+    for (const z of [-1, 1]) bundle(g, m, -0.05, 0.6, z * 0.18, 1.3, 1, 0.55);
+  }
+  if (load === 'bundle') {
+    saddleCloth(g, m, -0.04, 0.68);
+    bundle(g, m, -0.05, 0.8, 0, 1.5, 0.95, 1.35);
+    bundle(g, m, -0.08, 0.93, 0, 1.1, 0.8, 1.05);
+    bundle(g, m, 0.08, 0.9, 0.04, 0.8, 0.75, 0.8);
+    for (const z of [-1, 1]) bundle(g, m, -0.04, 0.6, z * 0.19, 1.4, 1.15, 0.6);
+  }
+  if (load === 'wheel') {
+    saddleCloth(g, m, -0.04, 0.68);
+    for (const z of [-0.205, 0.205]) {
+      const w = new THREE.Group(); w.position.set(-0.04, 0.63, z); g.add(w);
+      mesh(w, new THREE.TorusGeometry(0.15, 0.02, 10, 40), m);
+      mesh(w, new THREE.TorusGeometry(0.115, 0.008, 6, 40), m);
+      for (let i = 0; i < 6; i++) mesh(w, new THREE.BoxGeometry(0.29, 0.016, 0.016), m).rotation.z = i * Math.PI / 6;
+      mesh(w, new THREE.CylinderGeometry(0.035, 0.035, 0.04, 16), m).rotation.x = Math.PI / 2;
+    }
+    bundle(g, m, -0.05, 0.8, 0, 1.4, 0.8, 1.2);
+  }
+  if (load === 'bags') {
+    saddleCloth(g, m, -0.04, 0.66, 0.36);
+    for (const z of [-1, 1]) {
+      const bag = mesh(g, loft([[-0.14, 0.62, z * 0.19, 0.07, 0.035], [-0.04, 0.6, z * 0.2, 0.09, 0.045], [0.06, 0.62, z * 0.19, 0.07, 0.035]], 14, 14), m);
+    }
+    const roll = mesh(g, new THREE.CylinderGeometry(0.05, 0.05, 0.4, 20), m, -0.04, 0.79, 0); roll.rotation.x = Math.PI / 2;
+    mesh(g, ell(0.08, 1.3, 0.8, 1), m, -0.04, 0.86, 0);
+  }
+  return root;
+}
+function horse(m) {
+  const [root, g] = rigged(m, 'trot');
+  mesh(g, loft([
+    [-0.27, 0.6, 0, 0.02], [-0.22, 0.59, 0, 0.115, 0.1], [-0.1, 0.58, 0, 0.135, 0.115], [0.05, 0.58, 0, 0.135, 0.115],
+    [0.15, 0.6, 0, 0.1, 0.085], [0.21, 0.67, 0, 0.065, 0.055], [0.25, 0.77, 0, 0.055, 0.045], [0.28, 0.86, 0, 0.05, 0.042],
+    [0.32, 0.85, 0, 0.048, 0.04], [0.37, 0.79, 0, 0.036, 0.032], [0.39, 0.76, 0, 0.012]], 56, 22), m);
+  // mane and ears
+  mesh(g, loft([[0.17, 0.7, 0, 0.012, 0.02], [0.22, 0.82, 0, 0.018, 0.024], [0.27, 0.9, 0, 0.012, 0.02]], 14, 8), m).position.x = -0.035;
+  for (const z of [-0.02, 0.02]) mesh(g, new THREE.ConeGeometry(0.012, 0.045, 8), m, 0.285, 0.91, z).rotation.z = -0.3;
+  // flowing tail
+  mesh(g, loft([[-0.25, 0.62, 0, 0.025], [-0.32, 0.6, 0, 0.03, 0.022], [-0.35, 0.5, 0.02, 0.028, 0.02], [-0.33, 0.38, 0.03, 0.02], [-0.31, 0.33, 0.03, 0.006]], 18, 10), m);
+  // legs: front pair slightly lifted for movement
+  leg(g, m, 0.12, 0.06, 0.55, 0.052, 0.02); leg(g, m, 0.13, -0.06, 0.55, 0.052, 0.03);
+  leg(g, m, -0.17, 0.065, 0.56, 0.064, -0.03); leg(g, m, -0.17, -0.065, 0.56, 0.064, -0.03);
+  saddleCloth(g, m, -0.04, 0.68, 0.2);
+  rider(g, m, -0.04, 0.7, { helmet: true });
+  // spear and round shield
+  const spear = mesh(g, new THREE.CylinderGeometry(0.007, 0.007, 0.9, 8), m, 0.09, 0.98, 0.1); spear.rotation.z = -0.3;
+  mesh(g, new THREE.ConeGeometry(0.018, 0.07, 8), m, 0.225, 1.41, 0.1).rotation.z = -0.3;
+  const shield = mesh(g, new THREE.CylinderGeometry(0.08, 0.08, 0.014, 28), m, -0.05, 0.84, -0.13); shield.rotation.x = Math.PI / 2;
+  mesh(g, ell(0.022, 1, 1, 0.6), m, -0.05, 0.84, -0.14);
+  return root;
+}
+function ship(m) {
+  const [root, g] = rigged(m, 'sail');
+  const dm = m.clone(); dm.side = THREE.DoubleSide;
+  // hull: U-shaped sections from stern to bow, sheer line rising at both ends
+  const S = [[-0.3, 0.1, 0.1, 0.46], [-0.22, 0.15, 0.14, 0.38], [-0.08, 0.175, 0.16, 0.34], [0.08, 0.165, 0.155, 0.34], [0.2, 0.12, 0.13, 0.37], [0.3, 0.055, 0.09, 0.42], [0.36, 0.008, 0.04, 0.48]];
+  const sx = new THREE.CatmullRomCurve3(S.map(s => V(s[0], s[1], s[2]))), sy = new THREE.CatmullRomCurve3(S.map(s => V(s[3], 0, 0)));
+  const pos = [], idx = [], NS = 30, NA = 16;
+  for (let i = 0; i <= NS; i++) {
+    const t = i / NS, a = sx.getPoint(t), top = sy.getPoint(t).x;
+    for (let j = 0; j <= NA; j++) {
+      const ang = -Math.PI / 2 + Math.PI * j / NA;
+      pos.push(a.x, top - a.z * Math.cos(ang), a.y * Math.sin(ang));
+    }
+  }
+  for (let i = 0; i < NS; i++) for (let j = 0; j < NA; j++) { const a = i * (NA + 1) + j, b = a + 1, c = a + NA + 1, d = c + 1; idx.push(a, b, c, b, d, c); }
+  const hg = new THREE.BufferGeometry(); hg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); hg.setIndex(idx); hg.computeVertexNormals();
+  mesh(g, hg, dm, 0, -0.08, 0);
+  const deck = mesh(g, new THREE.CircleGeometry(0.16, 32), dm, 0.0, 0.25, 0); deck.rotation.x = -Math.PI / 2; deck.scale.set(1.9, 1.05, 1);
+  // planks, stern castle, rudder
+  for (let i = -2; i <= 2; i++) mesh(g, new THREE.BoxGeometry(0.5 - Math.abs(i) * 0.06, 0.006, 0.008), m, 0.0, 0.255, i * 0.05);
+  mesh(g, new THREE.BoxGeometry(0.13, 0.11, 0.22), m, -0.22, 0.31, 0);
+  mesh(g, new THREE.BoxGeometry(0.15, 0.02, 0.25), m, -0.22, 0.375, 0);
+  mesh(g, new THREE.BoxGeometry(0.05, 0.16, 0.012), m, -0.33, 0.22, 0).rotation.z = 0.2;
+  // mast, yard, curved sail, pennant
+  mesh(g, new THREE.CylinderGeometry(0.011, 0.016, 0.82, 10), m, 0.04, 0.66, 0);
+  const yard = mesh(g, new THREE.CylinderGeometry(0.008, 0.008, 0.5, 8), m, 0.05, 0.98, 0); yard.rotation.x = Math.PI / 2;
+  const sg = new THREE.PlaneGeometry(0.48, 0.42, 14, 12), sp = sg.attributes.position;
+  for (let i = 0; i < sp.count; i++) {
+    const x = sp.getX(i) / 0.24, y = (sp.getY(i) + 0.21) / 0.42;
+    sp.setZ(i, 0.09 * (1 - x * x) * Math.sin(Math.PI * (0.2 + 0.8 * (1 - y))));
+    sp.setX(i, sp.getX(i) * (0.92 + 0.08 * y));
+  }
+  sg.computeVertexNormals();
+  const sail = mesh(g, sg, dm, 0.06, 0.76, 0); sail.rotation.y = Math.PI / 2;
+  const pen = new THREE.BufferGeometry().setFromPoints([V(0, 0, 0), V(0, -0.04, 0), V(-0.11, -0.02, 0)]); pen.computeVertexNormals();
+  mesh(g, pen, dm, 0.04, 1.1, 0);
+  // sea spray around the keel on the base
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; mesh(g, ell(0.03, 1.4, 0.5, 1), m, Math.cos(a) * 0.21, 0.09, Math.sin(a) * 0.17); }
+  return root;
+}
+const homeYaw = s => s === 'b' ? Math.PI / 2 : -Math.PI / 2;
+// Sculpted figures (tools/sculpt.py → figures/*.glb): body + legs on hip pivots. The procedural builders above stay as a fallback.
+const ASSET_V = '20261023b';          // bump when figure models change, so browsers fetch the new ones
+const FIG = {};
+async function loadFigures() {
+  try {
+    const loader = new GLTFLoader();
+    const pivots = await (await fetch('../figures/pivots.json', { cache: 'no-cache' })).json();
+    await Promise.all(TYPES.map(async T => {
+      // models ship as base64 GLB inside JSON (the artifact host serves JSON, not .glb)
+      const j = await (await fetch('../figures/' + T.file + '.json?v=' + ASSET_V)).json();
+      const bin = Uint8Array.from(atob(j.glb), ch => ch.charCodeAt(0));
+      const g = await loader.parseAsync(bin.buffer, ''), parts = {};
+      g.scene.traverse(o => { if (o.isMesh) { if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals(); parts[o.name || o.parent.name] = o.geometry; } });
+      FIG[T.file] = { parts, pivots: pivots[T.file] || {} };
+    }));
+  } catch (e) { console.warn('sculpted figures not loaded, using simple ones', e); }
+}
+const MATV = { b: MAT.b.clone(), w: MAT.w.clone() };
+MATV.b.vertexColors = MATV.w.vertexColors = true;
+function sculpted(T, m, mvOverride) {
+  const F = FIG[T.file]; if (!F) return null;
+  const mv = mvOverride || MATV[m === MAT.b ? 'b' : 'w'];
+  const [root, up] = rigged(m, T.kind === 'camel' ? 'pace' : T.kind === 'horse' ? 'trot' : 'sail', F.pivots._own_base);
+  for (const [name, geo] of Object.entries(F.parts)) {
+    const mat = geo.attributes.color ? mv : m;
+    if (name.startsWith('leg_') && name.endsWith('_lo')) continue;
+    if (name.startsWith('leg_')) {
+      const hip = F.pivots[name], pivot = new THREE.Group(); pivot.position.set(...hip); root.add(pivot);
+      mesh(pivot, geo, mat);
+      let lower = null;
+      const lo = F.parts[name + '_lo'], kn = F.pivots[name + '_lo'];
+      if (lo && kn) {
+        lower = new THREE.Group(); lower.position.set(kn[0] - hip[0], kn[1] - hip[1], kn[2] - hip[2]); pivot.add(lower);
+        mesh(lower, lo, lo.attributes.color ? mv : m);
+      }
+      root.userData.legs.push({ pivot, lower, front: name.includes('front'), left: name.endsWith('_l') });
+    } else if (name === 'head' || name === 'tail') {        // neck+head and tail swing on their own pivots
+      const pivot = new THREE.Group(); pivot.position.set(...F.pivots[name]); up.add(pivot);
+      mesh(pivot, geo, mat); root.userData[name] = pivot;
+    } else if (name === 'base') mesh(root, geo, mat);     // the author's own base stays put while the body sways
+    else mesh(up, geo, mat);
+  }
+  root.userData.seed = Math.random() * 100;
+  return root;
+}
+function makePiece(s, t) {
+  const T = TYPES[t], m = MAT[s];
+  const g = sculpted(T, m) || (T.kind === 'camel' ? camel(m, T.load, T.humps) : T.kind === 'horse' ? horse(m) : ship(m));
+  g.scale.setScalar(0.95);
+  g.rotation.y = homeYaw(s);   // face the opponent
+  g.userData.kind = T.kind;
+  return g;
+}
+
+// ---------- Highlights ----------
+const ringGeo = new THREE.TorusGeometry(0.44, 0.03, 10, 48);
+const selMat = new THREE.MeshBasicMaterial({ color: 0x35f0c0 });
+const hintMat = new THREE.MeshBasicMaterial({ color: 0x35f0c0, transparent: true, opacity: 0.55 });
+const selRing = new THREE.Mesh(ringGeo, selMat); selRing.rotation.x = -Math.PI / 2; selRing.visible = false; scene.add(selRing);
+const hintRings = [];
+function showHints(cells) {
+  hintRings.forEach(r => scene.remove(r)); hintRings.length = 0;
+  for (const c of cells) {
+    const r = new THREE.Mesh(ringGeo, hintMat); r.rotation.x = -Math.PI / 2;
+    r.position.copy(pos(c)); r.position.y = TOP + 0.05; r.scale.setScalar(0.9);
+    scene.add(r); hintRings.push(r);
+  }
+}
+
+// ---------- Game state and rules ----------
+// Rules as the author explained them (voice messages and video, 20.10.2026):
+// • Керуенбасы moves like a queen: any distance along a straight run of lines, never through a figure.
+// • Қарауыл may make 3 such long moves per game, Желкенді кеме 1; otherwise both step one city.
+// • The other four camels step one city along a line.
+// • No captures were mentioned: a figure moves only to a free city.
+// • Win: all 7 of your figures in one straight line — a column, a long diagonal, or a row from the
+//   middle row towards the opponent (never on your own three rows).
+// • Who moves first was not said — Ақ starts here (an assumption).
+const LONG = { 0: Infinity, 3: 3, 6: 1 };
+let pieces = [], objs = {}, history = [], log = [], selected = null, tweens = [];
+let turn = 'w', used = { b: { 3: 0, 6: 0 }, w: { 3: 0, 6: 0 } }, winner = null, winLine = null;
+let asyk = null, clock = null;      // the throw that decided who starts; the tournament clock
+const STORE = 'uly-keruen-3d-v2';
+const EDGE = new Set(EDGES.map(([a, b]) => a + '|' + b).concat(EDGES.map(([a, b]) => b + '|' + a)));
+const hasEdge = (a, b) => EDGE.has(a + '|' + b);
+function cellMap() { const m = {}; for (const p of pieces) if (p.cell) m[p.cell] = p; return m; }
+function longLeft(p) { const lim = LONG[p.t]; return lim === undefined ? 0 : lim - (used[p.s][p.t] || 0); }
+
+// Where a figure may go: one step to any linked free city; a long move slides along one direction
+// for as long as the lines continue straight and the cities are free.
+function movesOf(p) {
+  const occ = cellMap(), out = new Map();
+  for (const n of NEIGH[p.cell] || []) if (!occ[n]) out.set(n, 1);
+  if (longLeft(p) > 0) {
+    const [r0, c0] = rc(p.cell);
+    for (const n of NEIGH[p.cell] || []) {
+      const [r1, c1] = rc(n), dr = r1 - r0, dc = c1 - c0;
+      let cur = p.cell, r = r0, c = c0, dist = 0;
+      while (true) {
+        const nx = k(r + dr, c + dc);
+        if (r + dr < 0 || r + dr >= N || c + dc < 0 || c + dc >= N || !hasEdge(cur, nx) || occ[nx]) break;
+        r += dr; c += dc; cur = nx; dist++;
+        if (!out.has(nx)) out.set(nx, dist);
+      }
+    }
+  }
+  return out;
+}
+
+const LINES = [];
+for (let r = 0; r < N; r++) LINES.push({ cells: [...Array(N)].map((_, c) => k(r, c)), sides: (r <= 3 ? 'b' : '') + (r >= 3 ? 'w' : ''), name: 'row' });
+for (let c = 0; c < N; c++) LINES.push({ cells: [...Array(N)].map((_, r) => k(r, c)), sides: 'bw', name: 'col' });
+LINES.push({ cells: [...Array(N)].map((_, i) => k(i, i)), sides: 'bw', name: 'diag' });
+LINES.push({ cells: [...Array(N)].map((_, i) => k(i, N - 1 - i)), sides: 'bw', name: 'diag' });
+function caravanLine(s) {
+  const occ = cellMap();
+  return LINES.find(L => L.sides.includes(s) && L.cells.every(c => occ[c] && occ[c].s === s)) || null;
+}
+
+function placeAll(animate) {
+  for (const p of pieces) {
+    const target = pos(p.cell).setY(TOP + 0.04), o = objs[p.id];
+    o.userData.seq = []; o.rotation.y = homeYaw(p.s);
+    if (animate) tweenTo(o, target); else o.position.copy(target);
+  }
+}
+
+// ---------- Sound effects ----------
+// Physically modelled samples, rendered once when sound starts and varied on every play:
+// a camel's padded foot crunching into sand, a hoof striking hard ground with grit, water lapping a hull
+// and wood creaking, a copper caravan bell, a wooden tap for selection, plucked dombra strings for the win.
+let actx = null, sfxBus = null, sfxOn = true;
+const BUF = {};
+function audio() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = actx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3;
+    sfxBus = actx.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(comp); comp.connect(actx.destination);
+    renderSamples();
+  }
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+addEventListener('pointerdown', () => { try { audio(); } catch (e) {} });
+function sample(dur, fill) {
+  const sr = actx.sampleRate, b = actx.createBuffer(1, Math.ceil(sr * dur), sr), d = b.getChannelData(0);
+  fill(d, sr);
+  let m = 0; for (let i = 0; i < d.length; i++) m = Math.max(m, Math.abs(d[i]));
+  if (m > 0) for (let i = 0; i < d.length; i++) d[i] *= 0.9 / m;
+  return b;
+}
+const R = () => Math.random() * 2 - 1;
+function ring(d, sr, at, f, decay, amp) {            // a damped resonance — the body of wood, hoof or bell
+  const i0 = Math.floor(at * sr), n = Math.min(d.length - i0, Math.floor(decay * 7 * sr)), w = 2 * Math.PI * f / sr, ph = Math.random() * 6.28;
+  for (let i = 0; i < n; i++) d[i0 + i] += amp * Math.sin(w * i + ph) * Math.exp(-i / (decay * sr));
+}
+function grains(d, sr, count, from, span, amp, bright) {   // sand / gravel: many tiny high bursts
+  for (let g = 0; g < count; g++) {
+    const at = from + span * Math.pow(Math.random(), 1.8), i0 = Math.floor(at * sr), len = Math.floor(sr * (0.0008 + Math.random() * 0.003));
+    const a = amp * (0.3 + Math.random()) * Math.exp(-(at - from) / (span * 0.45));
+    let prev = 0;
+    for (let i = 0; i < len && i0 + i < d.length; i++) { const x = R(); d[i0 + i] += a * (bright ? x - prev : x) * (1 - i / len); prev = x; }
+  }
+}
+function renderSamples() {
+  BUF.sand = [0, 1, 2, 3, 4, 5].map(() => sample(0.34, (d, sr) => {
+    let lp = 0;                                                       // soft heavy pad: low, filtered thump
+    for (let i = 0; i < 0.12 * sr; i++) { lp += 0.025 * (R() - lp); const t = i / sr; d[i] += lp * 9 * Math.min(1, t / 0.008) * Math.exp(-t / 0.04); }
+    grains(d, sr, 140 + Math.random() * 60, 0.004, 0.2, 0.18, true);  // grains of sand shifting under it
+    grains(d, sr, 40, 0.02, 0.12, 0.25, false);
+  }));
+  BUF.hoof = [0, 1, 2, 3].map(() => sample(0.22, (d, sr) => {
+    for (let i = 0; i < 0.003 * sr; i++) d[i] += R() * (1 - i / (0.003 * sr));                    // strike
+    ring(d, sr, 0, 240 + Math.random() * 60, 0.012, 0.9); ring(d, sr, 0, 610 + Math.random() * 90, 0.008, 0.6);
+    ring(d, sr, 0, 1500 + Math.random() * 300, 0.004, 0.35);
+    grains(d, sr, 35, 0.004, 0.07, 0.25, true);                                                    // grit kicked up
+  }));
+  BUF.water = [0, 1, 2].map(() => sample(1.7, (d, sr) => {
+    let br = 0, lp = 0;
+    for (let i = 0; i < d.length; i++) {
+      const t = i / sr, swell = Math.pow(Math.sin(Math.PI * Math.min(1, t / 1.6)), 2);
+      br = 0.995 * br + 0.04 * R(); lp += 0.08 * (br - lp);
+      d[i] += lp * 1.6 * swell;
+    }
+    for (let k = 0; k < 28; k++) ring(d, sr, 0.3 + Math.random() * 1.1, 900 + Math.random() * 2200, 0.004 + Math.random() * 0.004, 0.05);  // little splashes
+    grains(d, sr, 120, 0.4, 0.9, 0.04, true);
+  }));
+  BUF.creak = [0, 1].map(() => sample(0.9, (d, sr) => {                // stick-slip friction of planks
+    let t = 0.05;
+    while (t < 0.8) {
+      const env = Math.sin(Math.PI * (t - 0.05) / 0.75);
+      ring(d, sr, t, 520 + Math.random() * 40, 0.006, 0.5 * env); ring(d, sr, t, 1180 + Math.random() * 80, 0.003, 0.25 * env);
+      t += 1 / (38 + 22 * Math.sin(t * 9) + Math.random() * 6);
+    }
+  }));
+  BUF.bell = [0, 1].map(() => sample(1.6, (d, sr) => {                 // hand-beaten copper bell: inharmonic, beating
+    const f0 = 470 + Math.random() * 60;
+    for (const [m, a, dec] of [[1, 0.5, 0.35], [1.003, 0.4, 0.3], [1.59, 0.3, 0.25], [2.14, 0.25, 0.18], [2.83, 0.18, 0.12], [3.91, 0.1, 0.08]]) ring(d, sr, 0.004, f0 * m, dec, a);
+    grains(d, sr, 25, 0, 0.015, 0.3, true);
+  }));
+  // camel groan: a rough, gurgling vocal fry — jittery glottal pulses ringing through the throat's formants
+  BUF.groan = [0, 1, 2].map(() => sample(1.5, (d, sr) => {
+    let tt = 0.04; const f0 = 62 + Math.random() * 18;
+    while (tt < 1.35) {
+      const env = Math.sin(Math.PI * Math.min(1, tt / 1.35)) ** 0.7, gurgle = 0.55 + 0.45 * Math.abs(Math.sin(tt * 160 + Math.sin(tt * 37) * 4));
+      const a = env * gurgle * (0.7 + Math.random() * 0.6), rise = 1 + 0.25 * Math.sin(Math.PI * tt / 1.35);
+      ring(d, sr, tt, 420 * rise, 0.004, a); ring(d, sr, tt, 1050 * rise, 0.0025, a * 0.6); ring(d, sr, tt, 2450, 0.0015, a * 0.25);
+      tt += 1 / (f0 * rise * (0.85 + Math.random() * 0.3));
+    }
+    let lp = 0; for (let i = 0; i < d.length; i++) { lp += 0.06 * (R() - lp); const x = i / sr; d[i] += lp * 0.8 * Math.sin(Math.PI * Math.min(1, x / 1.4)); }
+  }));
+  // snorts: a burst of breath through the nose with fluttering lips
+  const snort = (len, flutter, f1, f2) => sample(len, (d, sr) => {
+    let lp = 0, bp = 0, prev = 0;
+    for (let i = 0; i < d.length; i++) {
+      const x = i / sr, env = Math.min(1, x / 0.02) * Math.exp(-x / (len * 0.35)), fl = 0.5 + 0.5 * Math.sin(2 * Math.PI * flutter * x + Math.sin(x * 9) * 2);
+      const n = R(); lp += 0.18 * (n - lp); bp = lp - prev; prev = lp;
+      d[i] = (lp * 0.7 + bp * 2.2) * env * (0.35 + 0.65 * fl);
+    }
+    ring(d, sr, 0.01, f1, 0.03, 0.15); ring(d, sr, 0.015, f2, 0.02, 0.08);
+  });
+  BUF.snort = [0, 1, 2].map(() => snort(0.45, 34 + Math.random() * 10, 600, 1300));
+  BUF.hsnort = [0, 1].map(() => snort(0.65, 26 + Math.random() * 8, 480, 1150));
+  BUF.flap = [0, 1].map(() => sample(0.7, (d, sr) => {      // canvas sail catching the wind
+    for (const at of [0.02, 0.17, 0.3, 0.46]) { let lp = 0; const i0 = Math.floor(at * sr); for (let i = 0; i < 0.09 * sr; i++) { lp += 0.25 * (R() - lp); d[i0 + i] += lp * Math.exp(-i / sr / 0.025) * (1 - at); } }
+  }));
+  BUF.tap = sample(0.12, (d, sr) => { ring(d, sr, 0, 780, 0.01, 0.8); ring(d, sr, 0, 2150, 0.004, 0.4); grains(d, sr, 8, 0, 0.004, 0.4, true); });
+  BUF.thud = sample(0.2, (d, sr) => { let lp = 0; for (let i = 0; i < 0.12 * sr; i++) { lp += 0.03 * (R() - lp); d[i] += lp * Math.exp(-i / sr / 0.03); } ring(d, sr, 0, 140, 0.03, 0.4); });
+  BUF.pluck = [146.8, 220, 293.7, 370, 440, 587.3].map(f => sample(1.4, (d, sr) => {    // Karplus–Strong dombra string
+    const N = Math.round(sr / f), line = new Float32Array(N); for (let i = 0; i < N; i++) line[i] = R() * (0.6 + 0.4 * Math.sin(Math.PI * i / N));
+    let idx = 0;
+    for (let i = 0; i < d.length; i++) { const a = line[idx], b = line[(idx + 1) % N]; d[i] = a; line[idx] = 0.996 * 0.5 * (a + b); idx = (idx + 1) % N; }
+  }));
+}
+function play(buf, gain = 1, pan = 0, at = 0) {
+  const s = actx.createBufferSource(); s.buffer = buf; s.playbackRate.value = 0.9 + Math.random() * 0.2;
+  const g = actx.createGain(); g.gain.value = gain;
+  s.connect(g);
+  if (actx.createStereoPanner) { const p = actx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); g.connect(p); p.connect(sfxBus); } else g.connect(sfxBus);
+  s.start(actx.currentTime + at);
+}
+const anyOf = a => a[Math.floor(Math.random() * a.length)];
+const SFX = {
+  camelStep: (pan, v = 1) => play(anyOf(BUF.sand), 0.55 * v, pan),
+  bell: (pan, v = 1) => play(anyOf(BUF.bell), 0.16 * v, pan),
+  hoof: (pan, v = 1) => { play(anyOf(BUF.hoof), 0.5 * v, pan); play(anyOf(BUF.hoof), 0.32 * v, pan, 0.07 + Math.random() * 0.02); },
+  water: (pan, v = 1) => play(anyOf(BUF.water), 0.45 * v, pan),
+  creak: (pan, v = 1) => play(anyOf(BUF.creak), 0.16 * v, pan),
+  select: () => play(BUF.tap, 0.5),
+  groan: (pan, v = 1) => play(anyOf(BUF.groan), 0.42 * v, pan),
+  snort: (pan, v = 1) => play(anyOf(BUF.snort), 0.38 * v, pan),
+  hsnort: (pan, v = 1) => play(anyOf(BUF.hsnort), 0.4 * v, pan),
+  flap: (pan, v = 1) => play(anyOf(BUF.flap), 0.35 * v, pan),
+  deny: () => play(BUF.thud, 0.5),
+  win: () => [0, 1, 2, 3, 4, 5, 3, 5].forEach((n, i) => play(BUF.pluck[n], 0.32, i % 2 ? 0.25 : -0.25, i * 0.12)),
+};
+function sfx(name, ...args) {
+  if (!sfxOn) return;
+  try { audio(); if (actx.state !== 'running') return; SFX[name](...args); } catch (e) {}
+}
+// called from the walk cycle on every footfall
+function footfall(o) {
+  const u = o.userData, pan = o.position.x / 4, v = intro ? 0.35 : 1;
+  if (u.kind === 'ship') { if (u.stepN % 3 === 0) sfx('water', pan, v); if (!intro && u.stepN % 5 === 2) sfx('creak', pan); }
+  else if (u.kind === 'horse') sfx('hoof', pan, v);
+  else sfx('camelStep', pan, v);
+}
+function startSound(o) {
+  const u = o.userData, pan = o.position.x / 4;
+  if (u.kind === 'ship') { sfx('water', pan); sfx('creak', pan); sfx('flap', pan); }
+  else if (u.kind !== 'horse' && Math.random() < 0.5) sfx('bell', pan);
+}
+// a voice when a figure is picked up
+function pickSound(o) {
+  const u = o.userData, pan = o.position.x / 4, r = Math.random();
+  if (u.kind === 'ship') sfx('flap', pan, 0.8);
+}
+
+
+// ---------- Walking ----------
+// A move is a little journey: turn towards the target city, walk there along the line, turn back to face the opponent.
+const angDiff = (a, b) => { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
+const yawTo = (a, b) => Math.atan2(-(b.z - a.z), b.x - a.x);
+function walkPath(o, points, endYaw, speed = 0.75) {
+  const q = []; let prev = o.position.clone().setY(TOP + 0.04);
+  // moves run along one straight line, so walk to the last city in one stride without stopping on the way
+  const to = points[points.length - 1];
+  q.push({ type: 'turn', yaw: yawTo(prev, to), dur: 380 });
+  q.push({ type: 'walk', to, dur: 1000 * prev.distanceTo(to) / speed });
+  if (endYaw !== undefined) q.push({ type: 'turn', yaw: endYaw, dur: 450 });
+  o.userData.seq = q;
+}
+function runSeq(o, now) {
+  const u = o.userData, q = u.seq;
+  if (!q || !q.length) return false;
+  const s = q[0];
+  if (s.t0 === undefined) { s.t0 = now; s.fromYaw = o.rotation.y; s.fromPos = o.position.clone(); }
+  const t = Math.min(1, (now - s.t0) / Math.max(1, s.dur));
+  if (s.type === 'turn') {
+    o.rotation.y = s.fromYaw + angDiff(s.fromYaw, s.yaw) * ease(t);
+    o.position.y += (TOP + 0.04 - o.position.y) * 0.2;
+    u.walking = Math.abs(angDiff(s.fromYaw, s.yaw)) > 0.2 ? 0.4 : 0;
+  } else { o.position.lerpVectors(s.fromPos, s.to, t); u.walking = 1; }
+  if (t === 1) { q.shift(); if (!q.length) u.walking = 0; }
+  return true;
+}
+// Legs swing on their hip pivots. Camels pace (both left legs together), the horse trots (diagonal pairs);
+// the body bobs and sways, the ship rocks.
+function animateRig(o, dt) {
+  const u = o.userData; if (!u.up) return;
+  u.amp += ((u.walking || 0) - u.amp) * Math.min(1, dt * 7);
+  if (u.amp < 0.002) { u.amp = 0; }
+  u.phase += dt * (u.gait === 'trot' ? 12.5 : 11) * (u.amp > 0 ? 1 : 0);
+  const step = Math.floor(u.phase / Math.PI);                     // a foot (or a wave) touches down
+  if (step !== u.lastStep) { if (u.amp > 0.45 && u.lastStep !== undefined) { u.stepN = (u.stepN || 0) + 1; footfall(o); } u.lastStep = step; }
+  const a = u.amp, ph = u.phase;
+  for (const L of u.legs) {
+    const off = u.gait === 'pace' ? (L.left ? 0 : Math.PI) : (L.front === L.left ? 0 : Math.PI);
+    const c = (((ph + off) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / (2 * Math.PI);   // 0..1 through one stride
+    const A = L.front ? 0.3 : 0.26;
+    let hip, knee;
+    if (c < 0.6) { hip = A * (1 - 2 * c / 0.6); knee = 0; }                                       // stance: planted, sweeping back
+    else { const s = (c - 0.6) / 0.4, e = s * s * (3 - 2 * s); hip = A * (-1 + 2 * e); knee = Math.sin(Math.PI * s); }   // swing
+    L.pivot.rotation.z = a * hip;
+    if (L.lower) L.lower.rotation.z = a * knee * (L.front ? -0.85 : 0.75);
+  }
+  const now = performance.now() / 1000, sd = u.seed || 0, idle = 1 - a;
+  if (u.head) {
+    if (!u.look || now > u.look.until) u.look = { yaw: (Math.random() - 0.5) * 0.7, pitch: (Math.random() - 0.4) * 0.25, until: now + 3 + Math.random() * 6 };
+    const h = u.head, nod = a * (u.gait === 'trot' ? 0.1 : 0.08) * Math.sin(ph * 2);
+    h.rotation.y += (u.look.yaw * idle - h.rotation.y) * 0.03;
+    h.rotation.z += (u.look.pitch * idle + nod + 0.02 * Math.sin(now * 1.3 + sd) * idle - h.rotation.z) * 0.15;
+  }
+  if (u.tail) {
+    const flick = Math.max(0, Math.sin(now * 0.7 + sd * 3)) ** 12;
+    u.tail.rotation.x = a * 0.35 * Math.sin(ph) + idle * (0.08 * Math.sin(now * 2 + sd) + 0.5 * flick * Math.sin(now * 14));
+    u.tail.rotation.z = a * 0.12 + idle * 0.05 * Math.sin(now * 1.1 + sd);
+  }
+  if (u.gait !== 'sail') u.up.scale.y = 1 + idle * 0.012 * Math.sin(now * 1.7 + sd);      // breathing
+  if (u.gait === 'sail') {
+    u.up.rotation.x = a * 0.08 * Math.sin(ph * 0.55); u.up.rotation.z = a * 0.05 * Math.sin(ph * 0.4 + 1);
+    u.up.position.y = a * 0.025 * (1 + Math.sin(ph * 0.55));
+  } else {
+    u.up.position.y = a * 0.012 * Math.cos(ph * 2);
+    u.up.rotation.x = u.gait === 'pace' ? a * 0.04 * Math.sin(ph) : 0;                           // a pacing camel rolls side to side
+    u.up.rotation.z = a * 0.015 * Math.sin(ph * 2);
+  }
+}
+function tweenTo(o, to) {
+  if (o.position.distanceTo(to) < 1e-3) return;
+  const from = o.position.clone(), lift = Math.min(1, from.distanceTo(to) * 0.25) + 0.25;
+  tweens.push({ o, from, to: to.clone(), t0: performance.now(), dur: 450, lift });
+}
+const snapshot = () => JSON.stringify({ pieces, turn, used, winner, log, asyk, clock });
+function restore(s) { const d = JSON.parse(s); pieces = d.pieces; turn = d.turn; used = d.used; winner = d.winner; log = d.log; asyk = d.asyk || null; clock = d.clock || null; }
+function save() { try { localStorage.setItem(STORE, JSON.stringify({ state: snapshot(), history })); } catch (e) {} }
+function load() {
+  try { const d = JSON.parse(localStorage.getItem(STORE)); if (d && d.state) { restore(d.state); history = d.history || []; return true; } } catch (e) {}
+  return false;
+}
+function newGame() {
+  pieces = startPieces(); history = []; log = []; turn = 'w'; used = { b: { 3: 0, 6: 0 }, w: { 3: 0, 6: 0 } }; winner = null; asyk = null; clock = null;
+  select(null); placeAll(true); save(); ui();
+}
+
+let legal = new Map();
+function select(p) {
+  selected = p; legal = p ? movesOf(p) : new Map();
+  if (!p) { selRing.visible = false; showHints([]); return; }
+  selRing.visible = true; selRing.position.copy(pos(p.cell)); selRing.position.y = TOP + 0.05; sfx('select'); pickSound(objs[p.id]);
+  showHints([...legal.keys()]);
+  if (LONG[p.t] < Infinity && longLeft(p) <= 0 && !(BOT.on && p.s === BOT.side)) flash(T('longOver', TYPES[p.t].name), 3000);
+}
+function move(p, cell) {
+  if (net.code && mySide() !== p.s) return;
+  const from = p.cell;
+  if (!legal.has(cell)) { sfx('deny'); flash(T('cantGo', TYPES[p.t].name)); return; }
+  history.push(snapshot());
+  const long = !hasEdge(p.cell, cell) || legal.get(cell) > 1;
+  if (long && LONG[p.t] !== Infinity) used[p.s][p.t]++;
+  log.push(`${SIDE[p.s]} · ${TYPES[p.t].name}: ${city(p.cell)} → ${city(cell)}` + (long && LONG[p.t] !== Infinity ? T('longMove') : ''));
+  const [r1, c1] = rc(p.cell), [r2, c2] = rc(cell), d = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1));
+  const path = [];
+  for (let i = 1; i <= d; i++) path.push(pos(k(r1 + Math.sign(r2 - r1) * i, c1 + Math.sign(c2 - c1) * i)).setY(TOP + 0.04));
+  p.cell = cell;
+  const line = caravanLine(p.s);
+  if (line) { winner = p.s; log.push(T('caravan', SIDE[p.s], T(line.name))); setTimeout(() => startVictory(p.s, line), 1000 + 900 * d); }
+  else turn = turn === 'w' ? 'b' : 'w';
+  select(null); walkPath(objs[p.id], path, homeYaw(p.s)); startSound(objs[p.id]);
+  if (net.code) pushMove(p.id, from, cell); else save();
+  ui();
+  if (long && LONG[p.t] !== Infinity && longLeft(p) <= 0 && !winner) flash(T('longOver', TYPES[p.t].name), 3000);
+  if (BOT.on) scheduleBot();
+}
+function undo() {
+  if (!history.length) return;
+  const c = clock; restore(history.pop()); clock = c;
+  select(null); placeAll(true); save(); ui();
+}
+
+const statusEl = document.getElementById('status'), logEl = document.getElementById('log');
+function flash(text, ms = 1400) { statusEl.textContent = text; clearTimeout(flash.t); flash.t = setTimeout(ui, ms); }
+function ui() {
+  statusEl.textContent = winner ? (clock && clock.stage === 4 ? T('byCount', SIDE[winner]) : T('won', SIDE[winner])) : T('turnN', Math.floor(log.length / 2) + 1, SIDE[turn]);
+  statusEl.style.color = winner ? 'var(--accent)' : '';
+  document.getElementById('counts').innerHTML = ['w', 'b'].map(s =>
+    `<div><b>${SIDE[s]}</b> — ${T('longLeft', 3 - used[s][3], 1 - used[s][6])}</div>`).join('') + (asyk ? `<div>${asykText()}</div>` : '');
+  logEl.innerHTML = log.map(l => `<li>${l}</li>`).join('');
+  logEl.scrollTop = logEl.scrollHeight;
+  document.getElementById('b-undo').disabled = !history.length;
+  if (net.code) renderSeats();
+  asykBtn.textContent = T('asykBtn');
+  asykBtn.hidden = !!(winner || log.length || asyk || asykA || (net.code && mySide() !== 'w'));
+  document.getElementById('b-names').textContent = showNames ? T('namesOn') : T('namesOff');
+  document.getElementById('b-clock').textContent = clock ? T('clockStop') : T('clockBtn');
+  clockTick();
+}
+
+// ---------- Who starts: the asyk throw ----------
+// Both sides throw a knucklebone onto the middle of the board. The author lists the positions in this order and
+// the earlier one is taken as the stronger; equal throws are repeated. The chances follow how a real asyk lands.
+const ASYK = ['Алшы', 'Тәйкі', 'Бүк', 'Шік', 'Омпы', 'Сомпы'], ASYK_P = [0.36, 0.36, 0.1, 0.1, 0.04, 0.04], ASYK_S = 0.3;
+const ASYK_H = [0.74, 0.74, 0.64, 0.64, 1.25, 1.25];
+const asykBtn = document.getElementById('asyk-btn'), asykMsgEl = document.getElementById('asyk-msg');
+const asykMat = { w: new THREE.MeshStandardMaterial({ color: 0xeadcbc, roughness: 0.5 }), b: new THREE.MeshStandardMaterial({ color: 0x8a4a22, roughness: 0.5 }) };
+let asykA = null, asykG = null;
+const asykText = () => T('asykRes', ASYK[asyk[0]], ASYK[asyk[1]], SIDE[asyk[0] < asyk[1] ? 'w' : 'b']);
+function rollAsyk() { let x = Math.random(); for (let i = 0; i < 5; i++) { x -= ASYK_P[i]; if (x < 0) return i; } return 5; }
+function asykGeo() {                                        // long knuckle with a waist, a knob on top, a hollow underneath
+  const g = new THREE.SphereGeometry(1, 64, 40), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), waist = 1 - 0.24 * Math.exp(-x * x * 7);
+    const pit = Math.exp(-(x * x + z * z) * 5), side = Math.exp(-((x - 0.25 * y) ** 2 * 9 + y * y * 3));
+    p.setXYZ(i, x * 1.25, y * 0.74 * waist + (y > 0 ? 0.14 : 0.3) * pit, z * 0.64 * waist + (z > 0 ? -0.2 : 0.06) * side);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+function asykRest(r) {                                      // the orientation in which each position lies
+  const q = new THREE.Quaternion(), X = new THREE.Vector3(1, 0, 0), Z = new THREE.Vector3(0, 0, 1);
+  if (r === 0) q.setFromAxisAngle(X, Math.PI); else if (r === 2) q.setFromAxisAngle(X, -Math.PI / 2); else if (r === 3) q.setFromAxisAngle(X, Math.PI / 2);
+  else if (r === 4) q.setFromAxisAngle(Z, Math.PI / 2); else if (r === 5) q.setFromAxisAngle(Z, -Math.PI / 2);
+  return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * 6.28).multiply(q);
+}
+function asykNote(text, ms) { asykMsgEl.textContent = text; asykMsgEl.classList.add('on'); clearTimeout(asykNote.t); asykNote.t = setTimeout(() => asykMsgEl.classList.remove('on'), ms); }
+function throwAsyk() {
+  if (asykA || winner || log.length || asyk || intro || victory || (net.code && mySide() !== 'w')) return;
+  select(null); asykG ||= asykGeo();
+  const make = (s, r, x, z0) => {
+    const m = new THREE.Mesh(asykG, asykMat[s]); m.castShadow = true; m.scale.setScalar(ASYK_S); scene.add(m);
+    m.userData = { x, z0, y: TOP + 0.02 + ASYK_H[r] * ASYK_S, end: asykRest(r), axis: new THREE.Vector3(Math.random() - 0.5, 0.4, Math.random() - 0.5).normalize(), spin: 16 + Math.random() * 8 };
+    return m;
+  };
+  const w = rollAsyk(), b = rollAsyk();
+  asykA = { t0: performance.now(), w, b, hit: 0, done: false, meshes: [make('w', w, 0.62, -5.5), make('b', b, -0.62, 5.5)] };
+  ui();
+}
+const asykQ = new THREE.Quaternion();
+function runAsyk(now) {
+  if (!asykA || asykA.done) return;
+  const e = Math.min(1, (now - asykA.t0) / 1400), left = 1 - e, near = 1 - left * left;
+  for (const m of asykA.meshes) {
+    const d = m.userData;
+    m.position.set(d.x, d.y + 2 * left * left * Math.abs(Math.cos(e * Math.PI * 2.5)), d.z0 * (1 - near));
+    m.quaternion.copy(asykQ.setFromAxisAngle(d.axis, d.spin * left * left)).multiply(d.end);
+  }
+  const hits = [0.2, 0.6, 1];
+  if (asykA.hit < 3 && e >= hits[asykA.hit]) { asykA.hit++; sfx('select'); }
+  if (e < 1) return;
+  const { w, b, meshes } = asykA;
+  asykA.done = true;
+  if (w === b) {
+    asykNote(T('asykTie'), 1300);
+    setTimeout(() => { meshes.forEach(m => scene.remove(m)); asykA = null; throwAsyk(); }, 1400);
+    return;
+  }
+  asykA = null; asyk = [w, b]; turn = w < b ? 'w' : 'b';
+  asykNote(asykText(), 3800);
+  setTimeout(() => meshes.forEach(m => scene.remove(m)), 3800);
+  save(); ui(); pushState();
+  if (BOT.on) scheduleBot();
+}
+asykBtn.onclick = throwAsyk;
+
+// ---------- Tournament clock ----------
+// 45 minutes; on a draw a second game, then 10 more minutes, then 50 moves, then whoever is closer to a caravan wins.
+const clockEl = document.getElementById('clock');
+const MIN = 60000;
+function clockTick() {
+  if (!clock || winner) { clockEl.hidden = true; return; }
+  clockEl.hidden = false;
+  if (clock.stage === 3) {
+    const left = 50 - (log.length - clock.at);
+    clockEl.textContent = `${T('stages')[3]} · ${T('movesLeft', Math.max(0, left))}`;
+    if (left <= 0) closestWins();
+    return;
+  }
+  const ms = clock.end - Date.now();
+  if (ms <= 0) { nextStage(); return; }
+  const s = Math.ceil(ms / 1000);
+  clockEl.textContent = `${T('stages')[clock.stage]} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+function nextStage() {
+  const st = clock.stage;
+  if (st === 0) { newGame(); clock = { stage: 1, end: Date.now() + 45 * MIN }; asykNote(T('draw2'), 4000); if (BOT.on) setTimeout(throwAsyk, 900); }
+  else if (st === 1) { clock = { stage: 2, end: Date.now() + 10 * MIN }; asykNote(T('draw10'), 4000); }
+  else { clock = { stage: 3, at: log.length }; asykNote(T('draw50'), 4000); }
+  save(); ui();
+}
+function closestWins() {
+  const st = botState(), cw = caravanCost(st, 'w'), cb = caravanCost(st, 'b');
+  select(null);
+  if (cw === cb) { clock = null; asykNote(T('evenEnd'), 5000); winner = null; }
+  else { winner = cw < cb ? 'w' : 'b'; clock = { stage: 4 }; asykNote(T('byCount', SIDE[winner]), 6000); }
+  save(); ui();
+}
+document.getElementById('b-clock').onclick = () => { clock = clock ? null : { stage: 0, end: Date.now() + 45 * MIN }; save(); ui(); pushState(); };
+setInterval(() => { if (clock) clockTick(); }, 500);
+
+// ---------- Figure names on the board ----------
+const labels = {}, labelDir = new THREE.Vector3();
+let showNames = true;
+try { showNames = localStorage.getItem('uly-keruen-names') !== '0'; } catch (e) {}
+function nameSprite(name) {
+  const c = document.createElement('canvas'); c.width = 400; c.height = 90;
+  const g = c.getContext('2d'); g.font = '700 50px "PT Serif", Georgia, serif';
+  const w = Math.min(392, g.measureText(name).width + 44);
+  g.fillStyle = 'rgba(24,14,6,.84)'; g.beginPath(); g.roundRect((400 - w) / 2, 6, w, 78, 22); g.fill();
+  g.fillStyle = '#ffe9c4'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(name, 200, 48, 370);
+  const map = new THREE.CanvasTexture(c); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 4;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map, depthTest: false, transparent: true, toneMapped: false }));
+  s.scale.set(1.16, 0.26, 1); s.renderOrder = 5;
+  return s;
+}
+function updateLabels() {
+  const hide = !showNames || intro || victory;
+  document.getElementById('topbar').style.display = intro || victory ? 'none' : '';
+  camera.getWorldDirection(labelDir); labelDir.y = 0; labelDir.normalize();
+  for (const [id, s] of Object.entries(labels)) {
+    s.visible = !hide && objs[id].visible;
+    if (s.visible) s.position.copy(objs[id].position).addScaledVector(labelDir, -0.36).setY(TOP + 0.1);
+  }
+}
+document.getElementById('b-names').onclick = () => {
+  showNames = !showNames; try { localStorage.setItem('uly-keruen-names', showNames ? '1' : '0'); } catch (e) {}
+  ui();
+};
+
+// ---------- Picking ----------
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects([...Object.values(objs), ...discs], true)[0];
+  if (!hit) return null;
+  let o = hit.object;
+  while (o && !o.userData.pid && !o.userData.cell) o = o.parent;
+  if (!o) return null;
+  return o.userData.pid ? { piece: pieces.find(p => p.id === o.userData.pid) } : { cell: o.userData.cell };
+}
+function clickPiece(p) {
+  if (winner || asykA) return;
+  if (BOT.on) {
+    if (p.s === BOT.side) { if (!selected || selected.s === BOT.side) flash(T('botPiece')); else flash(T('busy')); return; }
+    if (turn === BOT.side) { flash(T('thinking')); return; }
+  }
+  if (net.code) {
+    const me = mySide();
+    if (!me) { flash(T('sitFirst')); return; }
+    if (p.s !== me) { if (!selected) flash(T('foe')); else flash(T('busy')); return; }
+    if (turn !== me) { flash(T('foeTurn')); return; }
+  }
+  if (p.s !== turn) { if (selected) flash(T('busy')); else flash(T('nowMoves', SIDE[turn])); return; }
+  select(selected === p ? null : p);
+}
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) { down = null; return; }
+  down = null;
+  const h = pick(e);
+  if (!h) { select(null); return; }
+  const p = h.piece || cellMap()[h.cell];
+  if (p) clickPiece(p);
+  else if (selected && !(BOT.on && selected.s === BOT.side)) move(selected, h.cell);
+});
+const tip = document.getElementById('tip');
+renderer.domElement.addEventListener('pointermove', e => {
+  if (e.buttons) { tip.style.display = 'none'; return; }
+  const h = pick(e);
+  let text = '';
+  const p = h && (h.piece || cellMap()[h.cell]);
+  if (p) {
+    const extra = LONG[p.t] === Infinity ? T('queen') : LONG[p.t] ? T('longN', longLeft(p)) : T('step');
+    text = `${SIDE[p.s]} · ${TYPES[p.t].name} — ${city(p.cell)} · ${extra}`;
+  } else if (h && h.cell) text = city(h.cell) + (TAGS[h.cell] ? ` · ${TAGS[h.cell].toLowerCase()}` : '');
+  renderer.domElement.style.cursor = text ? 'pointer' : 'grab';
+  tip.style.display = text ? 'block' : 'none';
+  tip.textContent = text; tip.style.left = e.clientX + 14 + 'px'; tip.style.top = e.clientY + 14 + 'px';
+});
+
+// ---------- Camera views ----------
+const VIEWS = { b: [0, 8.2, 9.2], w: [0, 8.2, -9.2], top: [0, 14.5, 0.01] };
+let camTween = null;
+function goView(v) { camTween = { from: camera.position.clone(), to: new THREE.Vector3(...VIEWS[v]), t0: performance.now() }; }
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+// ---------- Intro: the backstory ----------
+// At sunset the camera flies over the board from Nara to Rome, then the white caravan enters from the east and the
+// brown one from the west, each figure walking to its start city, while captions and narration tell the story.
+const CAPS = [
+  [1.5, 'Ерте заманда Шығыс пен Батысты бір ұлы жол жалғаған…', 'Давным-давно Восток и Запад соединяла одна великая дорога…'],
+  [6.3, 'Ұлы Жібек жолы — Нарадан Римге дейін.', 'Великий Шёлковый путь — от Нары до Рима.'],
+  [10.1, 'Түйе керуендері жібек, фарфор мен дәмдеуіш тасыды.', 'Караваны верблюдов везли шёлк, фарфор и пряности.'],
+  [14.8, 'Жол бойында Отырар, Тараз, Сауран, Ясы қалалары гүлденді.', 'Вдоль пути расцветали Отырар, Тараз, Сауран, Ясы.'],
+  [20.5, 'Керуенді керуенбасы бастады, қарауыл күзетті.', 'Караван вёл керуенбасы, охранял қарауыл.'],
+  [24.7, 'Енді кезек сенде: керуеніңді жина, қарсыласыңа жол берме!', 'Теперь твой черёд: собери свой караван и не дай пройти сопернику!'],
+];
+const GAP = 0.95;
+const introEl = document.getElementById('intro'), capEl = document.getElementById('cap'), cityEl = document.getElementById('cityname');
+const titleEl = document.getElementById('ititle'), panelEl = document.getElementById('panel');
+let intro = null, introCast = null, muted = false;
+const music = new Audio('../intro.ogg'); music.preload = 'auto';
+function playMusic() { try { music.pause(); music.currentTime = 0; music.volume = muted ? 0 : 1; music.play().catch(() => {}); } catch (e) {} }
+function fadeMusic() {
+  const v0 = music.volume, t0 = performance.now();
+  const f = () => { const q = (performance.now() - t0) / 900; music.volume = Math.max(0, v0 * (1 - q)); if (q < 1) requestAnimationFrame(f); else music.pause(); };
+  f();
+}
+const LIGHT0 = { sun: sun.color.getHex(), sunI: sun.intensity, sunP: sun.position.clone(), hemi: hemi.intensity, bg: scene.background.getHex(), fog: [scene.fog.near, scene.fog.far] };
+function sunset(on) {
+  if (on) {
+    sun.color.set(0xffb070); sun.intensity = 2.6; sun.position.set(-7, 5.5, -6); hemi.intensity = 0.6;
+    scene.background.set(0xe39462); scene.fog.color.set(0xe39462); scene.fog.near = 16; scene.fog.far = 60;
+  } else {
+    sun.color.set(LIGHT0.sun); sun.intensity = LIGHT0.sunI; sun.position.copy(LIGHT0.sunP); hemi.intensity = LIGHT0.hemi;
+    scene.background.set(LIGHT0.bg); scene.fog.color.set(LIGHT0.bg); [scene.fog.near, scene.fog.far] = LIGHT0.fog;
+  }
+}
+const pulse = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.035, 10, 48), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true }));
+pulse.rotation.x = -Math.PI / 2; pulse.visible = false; scene.add(pulse);
+// Story beats, in seconds of the soundtrack. Like volleyball teams the two caravans come in from opposite sides along
+// the two rows next to the middle line, stop, turn to each other and bow, then walk back to their own halves.
+const CARAVANS = { w: { t0: 10.1, v: 0.78, z: -3, line: -1, entry: 3.9, dir: -1 }, b: { t0: 10.1, v: 0.78, z: 3, line: 1, entry: -3.9, dir: 1 } };
+const BOW = [21.2, 22.8], BACK = 24.2;
+const BEATS = [
+  [6.5, () => mark(k(0, 0))], [9.2, () => mark(k(6, 6))],
+  [15.2, () => mark(k(2, 4))], [16.3, () => mark(k(2, 3))], [17.4, () => mark(k(2, 6))], [18.5, () => mark(k(2, 5))],
+  [22.6, () => mark(null, introCast.b[0], 'КЕРУЕНБАСЫ')], [24.0, () => mark(null, introCast.b[3], 'ҚАРАУЫЛ')],
+];
+function mark(cell, obj, label) {
+  const p = cell ? pos(cell) : obj.position.clone();
+  cityEl.textContent = label || city(cell); cityEl.classList.add('on');
+  pulse.position.copy(p).setY(TOP + 0.05); pulse.visible = true; intro.pulseT = performance.now();
+  clearTimeout(mark.t); mark.t = setTimeout(() => cityEl.classList.remove('on'), 1600);
+}
+function startIntro() {
+  select(null);
+  if (!introCast) {
+    introCast = { w: [], b: [] };
+    for (const s of ['w', 'b']) for (let t = 0; t < 7; t++) { const o = makePiece(s, t); scene.add(o); introCast[s].push(o); }
+  }
+  for (const s of ['w', 'b']) for (const o of introCast[s]) o.visible = false;
+  for (const o of Object.values(objs)) o.visible = false;
+  panelEl.style.display = hudEl.style.display = 'none'; introEl.style.display = 'block'; titleEl.classList.remove('on'); capEl.classList.remove('on');
+  controls.enabled = false; sunset(true);
+  camera.position.set(8, 5.5, 6); controls.target.set(0, 0.3, 0);
+  intro = { t0: performance.now(), cap: -1, beat: 0 };
+}
+function endIntro() {
+  if (!intro) return;
+  intro = null;
+  for (const s of ['w', 'b']) for (const o of introCast[s]) o.visible = false;
+  pulse.visible = false;
+  for (const o of Object.values(objs)) o.visible = true;
+  introEl.style.display = 'none'; panelEl.style.display = hudEl.style.display = '';
+  sunset(false); controls.enabled = true; controls.target.set(0, 0, 0); goView('b'); fadeMusic();
+}
+// Each figure of a caravan walks in single file from the board edge and stops in its own column at the middle line,
+// faces the opponent, bows, and at the end walks back to its start city.
+function caravan(s, T) {
+  const C = CARAVANS[s];
+  introCast[s].forEach((o, t) => {
+    const col = s === 'w' ? t : 6 - t, dist = Math.abs(col - 3 - C.entry);
+    const run = C.v * (T - C.t0) - t * GAP, prog = Math.min(dist, Math.max(0, run));
+    const back = Math.min(1, Math.max(0, (T - BACK - t * 0.08) / 2.9)), goingBack = back > 0 && back < 1;
+    const bow = T > BOW[0] && T < BOW[1] ? Math.sin(Math.PI * (T - BOW[0]) / (BOW[1] - BOW[0])) : 0;
+    o.visible = run > 0;
+    o.position.set(C.entry + C.dir * prog, TOP + 0.04 + bow * 0.05, C.line + (C.z - C.line) * back);
+    o.scale.setScalar(0.95 * Math.min(1, Math.max(0, run) / 0.35));
+    const walking = run > 0 && prog < dist;
+    o.userData.walking = walking || goingBack ? 1 : 0;
+    o.rotation.z = -0.24 * bow;
+    if (walking) o.rotation.y = C.dir > 0 ? 0 : Math.PI;
+    else if (run > 0) o.rotation.y += angDiff(o.rotation.y, homeYaw(s) + (goingBack ? Math.PI : 0)) * 0.08;
+  });
+}
+const lead = s => introCast[s][0].position;
+function runIntro(now) {
+  // the soundtrack is the clock, so pictures, captions and narration stay in step
+  const T = !music.paused && music.currentTime > 0 ? music.currentTime : (now - intro.t0) / 1000;
+  caravan('w', T); caravan('b', T);
+  while (intro.beat < BEATS.length && T >= BEATS[intro.beat][0]) BEATS[intro.beat++][1]();
+  if (pulse.visible) {
+    const e = (now - intro.pulseT) / 1500;
+    pulse.scale.setScalar(1 + e * 0.6); pulse.material.opacity = Math.max(0, 1 - e);
+    if (e >= 1) pulse.visible = false;
+  }
+  const cap = CAPS.reduce((acc, c, i) => (T >= c[0] ? i : acc), -1);
+  if (cap !== intro.cap && cap >= 0) {
+    intro.cap = cap; capEl.classList.remove('on');
+    setTimeout(() => { if (!intro) return; capEl.querySelector('.kk').textContent = CAPS[cap][1]; capEl.querySelector('.ru').textContent = CAPS[cap][2]; capEl.classList.add('on'); }, 350);
+  }
+  // camera: wide establishing orbit → glide Nara to Rome → follow the teams coming in → along the middle line for the bow → rise for the title
+  let camTo, look, k1 = 0.035;
+  if (T < 6.3) {
+    const a = 0.9 - T * 0.07;
+    look = V(0, 0.3, 0); camTo = V(Math.cos(a) * 9.5, 5.2 - T * 0.25, Math.sin(a) * 9.5);
+  } else if (T < 10.1) {
+    const q = (T - 6.3) / 3.8; look = pos(k(0, 0)).lerp(pos(k(6, 6)), q).setY(0.5);
+    camTo = look.clone().add(V(-2.6, 2.4, 2.2)); k1 = 0.05;
+  } else if (T < 19.5) {
+    look = lead('w').clone().add(V(-0.6, 0.4, 0)); camTo = look.clone().add(V(-2.4, 1.4, 2.6));
+    if (T > 14.8 && T < 19.5) { look = V(1.2, 0.4, -1.6); camTo = V(-1.2, 2.6, 1.6); }
+  } else if (T < BACK) {
+    look = V(0.4, 0.35, 0); camTo = V(6.8, 2.3, 0.01);
+  } else {
+    look = V(0, 0, 0.5); camTo = V(VIEWS.b[0] * 1.05, VIEWS.b[1] * 1.15, VIEWS.b[2] * 1.05); k1 = 0.025;
+  }
+  camera.position.lerp(camTo, k1);
+  controls.target.lerp(look, 0.06);
+  camera.lookAt(controls.target);
+  if (T > 29.3 && !titleEl.classList.contains('on')) { titleEl.classList.add('on'); capEl.classList.remove('on'); }
+}
+
+// ---------- Victory scene ----------
+// When a caravan is assembled: sunset light, letterbox, the camera circles the winning line, the figures
+// dance in place over pulsing rings, and a fanfare with the narrator announces the winner.
+const WIN_TEXT = { w: ['Ақ керуен жеңді', 'Победили белые'], b: ['Қоңыр керуен жеңді', 'Победили коричневые'] };
+const winAudio = { w: new Audio('../win_w.ogg'), b: new Audio('../win_b.ogg') };
+for (const a of Object.values(winAudio)) a.preload = 'auto';
+const vicEl = document.getElementById('victory');
+const winRings = [...Array(N)].map(() => { const r = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.035, 10, 48), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true })); r.rotation.x = -Math.PI / 2; r.visible = false; scene.add(r); return r; });
+let victory = null;
+function startVictory(s, line) {
+  if (intro || victory) return;
+  select(null);
+  const center = line.cells.reduce((v, c) => v.add(pos(c)), new THREE.Vector3()).multiplyScalar(1 / line.cells.length);
+  const crew = line.cells.map(c => objs[pieces.find(p => p.cell === c).id]);
+  victory = { s, line, center, crew, t0: performance.now(), a0: Math.atan2(camera.position.z - center.z, camera.position.x - center.x) };
+  line.cells.forEach((c, i) => { winRings[i].position.copy(pos(c)).setY(TOP + 0.05); winRings[i].visible = true; });
+  document.getElementById('v-kk').textContent = WIN_TEXT[s][0];
+  document.getElementById('v-ru').textContent = WIN_TEXT[s][1];
+  vicEl.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
+  vicEl.style.display = 'block'; panelEl.style.display = hudEl.style.display = 'none';
+  controls.enabled = false; sunset(true);
+  if (!muted) { try { const a = winAudio[s]; a.currentTime = 0; a.volume = 1; a.play().catch(() => {}); } catch (e) {} }
+}
+function endVictory() {
+  if (!victory) return;
+  for (const o of victory.crew) o.userData.walking = 0;
+  victory = null; winRings.forEach(r => (r.visible = false));
+  for (const a of Object.values(winAudio)) a.pause();
+  vicEl.style.display = 'none'; panelEl.style.display = hudEl.style.display = '';
+  sunset(false); controls.enabled = true; controls.target.set(0, 0, 0); goView(mySide() || 'b');
+}
+function runVictory(now) {
+  const T = (now - victory.t0) / 1000, c = victory.center;
+  const a = victory.a0 + T * 0.32, rad = 5.2 - Math.min(1.6, T * 0.25);
+  camera.position.lerp(new THREE.Vector3(c.x + Math.cos(a) * rad, 2.6 + Math.sin(T * 0.4) * 0.4, c.z + Math.sin(a) * rad), 0.05);
+  controls.target.lerp(c.clone().setY(0.5), 0.08);
+  camera.lookAt(controls.target);
+  victory.crew.forEach((o, i) => {
+    o.userData.walking = 0.55;
+    o.position.y = TOP + 0.04 + Math.abs(Math.sin(T * 4.2 - i * 0.6)) * 0.14;
+    o.rotation.y += angDiff(o.rotation.y, homeYaw(victory.s) + Math.sin(T * 2 + i) * 0.35) * 0.1;
+  });
+  winRings.forEach((r, i) => {
+    if (!r.visible) return;
+    const e = ((T * 1.3 - i * 0.18) % 1 + 1) % 1;
+    r.scale.setScalar(1 + e * 0.5); r.material.opacity = 1 - e;
+  });
+  if (T > 0.9) document.getElementById('v-title').classList.add('on');
+  if (T > 9.5) document.getElementById('v-btns').classList.add('on');
+}
+
+let last = performance.now();
+function frame_(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i], t = Math.min(1, (now - tw.t0) / tw.dur), e = ease(t);
+    tw.o.position.lerpVectors(tw.from, tw.to, e);
+    tw.o.position.y += Math.sin(Math.PI * e) * tw.lift;
+    if (t === 1) tweens.splice(i, 1);
+  }
+  for (const p of pieces) {
+    const o = objs[p.id];
+    const busy = runSeq(o, now) || tweens.some(t => t.o === o);
+    if (!busy) o.position.y += ((selected === p ? TOP + 0.2 : TOP + 0.04) - o.position.y) * 0.2;
+    animateRig(o, dt);
+  }
+  if (intro) { runIntro(now); for (const s of ['w', 'b']) for (const o of introCast[s]) animateRig(o, dt); }
+  else if (victory) runVictory(now);
+  else {
+    if (camTween) {
+      const t = Math.min(1, (now - camTween.t0) / 800);
+      camera.position.lerpVectors(camTween.from, camTween.to, ease(t));
+      if (t === 1) camTween = null;
+    }
+    controls.update();
+  }
+  runAsyk(now); updateLabels();
+  selRing.material.color.setHSL(0.45, 0.85, 0.5 + 0.12 * Math.sin(now / 250));
+  animateWorld(now, dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame_);
+}
+
+function fit() {
+  const w = view.clientWidth || innerWidth, h = view.clientHeight || innerHeight;
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+}
+new ResizeObserver(fit).observe(view);
+fit();
+// confirm on the button itself (embedded browsers block confirm())
+document.getElementById('b-new').onclick = e => {
+  const b = e.currentTarget;
+  if (!log.length || b.dataset.armed) { delete b.dataset.armed; b.textContent = T('newGame'); if (net.code) newOnlineGame(); else { newGame(); if (BOT.on) setTimeout(throwAsyk, 900); } return; }
+  b.dataset.armed = '1'; b.textContent = T('sure');
+  setTimeout(() => { delete b.dataset.armed; b.textContent = T('newGame'); }, 3000);
+};
+document.getElementById('b-undo').onclick = () => { if (BOT.busy) return; undo(); if (BOT.on && turn === BOT.side && history.length) undo(); };
+document.querySelectorAll('#bot-levels button').forEach(b => b.onclick = () => { BOT.level = +b.dataset.level; document.querySelectorAll('#bot-levels button').forEach(x => x.classList.toggle('on', x === b)); botStatus(); });
+document.querySelectorAll('#bot-side button').forEach(b => b.onclick = () => { BOT.human = b.dataset.side; document.querySelectorAll('#bot-side button').forEach(x => x.classList.toggle('on', x === b)); });
+document.getElementById('bot-start').onclick = startBotGame;
+document.getElementById('bot-stop').onclick = () => { BOT.on = false; botStatus(); select(null); };
+document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { LANG = b.dataset.lang; try { localStorage.setItem('uly-keruen-lang', LANG); } catch (e) {} applyLang(); document.getElementById('b-sound').textContent = sfxOn ? T('sound') : T('noSound'); botStatus(); ui(); });
+document.getElementById('n-join').onclick = joinTable;
+document.getElementById('p-host').onclick = p2pHost;
+document.getElementById('p-join').onclick = p2pJoin;
+document.getElementById('p-leave').onclick = () => { p2pReset(); nEl('p-turn').textContent = ''; p2pStatus(T('p2pHint')); if (!load()) pieces = startPieces(); select(null); placeAll(true); ui(); };
+document.getElementById('v-board').onclick = endVictory;
+document.getElementById('v-new').onclick = () => { endVictory(); if (net.code) newOnlineGame(); else { newGame(); if (BOT.on) setTimeout(throwAsyk, 900); } };
+document.getElementById('n-leave').onclick = () => leaveTable();
+document.getElementById('b-sound').onclick = e => { sfxOn = !sfxOn; e.currentTarget.textContent = sfxOn ? T('sound') : T('noSound'); };
+document.getElementById('b-intro').onclick = () => { startIntro(); playMusic(); };
+document.getElementById('g-play').onclick = () => { document.getElementById('gate').remove(); startIntro(); playMusic(); };
+document.getElementById('g-skip').onclick = () => { document.getElementById('gate').remove(); };
+document.getElementById('i-mute').onclick = e => { muted = !muted; music.volume = muted ? 0 : 1; e.target.textContent = muted ? '🔇' : '🔊'; };
+document.getElementById('i-skip').onclick = endIntro;
+document.getElementById('i-start').onclick = endIntro;
+document.getElementById('v-b').onclick = () => goView('b');
+document.getElementById('v-w').onclick = () => goView('w');
+document.getElementById('v-top').onclick = () => goView('top');
+// side menu: a drawer that is closed by default on phones and open on wide screens
+const hudEl = document.getElementById('hud'), chipEl = document.getElementById('chip');
+const isPhone = () => innerWidth <= 700;
+function setMenu(open) { panelEl.classList.toggle('closed', !open); hudEl.style.opacity = open && !isPhone() ? '0' : '1'; hudEl.style.pointerEvents = open && !isPhone() ? 'none' : ''; chipEl.hidden = open; }
+document.getElementById('menu-open').onclick = () => setMenu(panelEl.classList.contains('closed'));
+document.getElementById('menu-close').onclick = () => setMenu(false);
+renderer.domElement.addEventListener('pointerdown', () => { if (isPhone() && !panelEl.classList.contains('closed')) setMenu(false); });
+for (const id of ['bot-start', 'p-host', 'p-join', 'n-join', 'v-b', 'v-w', 'v-top']) document.getElementById(id).addEventListener('click', () => { if (isPhone()) setTimeout(() => setMenu(false), 150); });
+new MutationObserver(() => { chipEl.textContent = statusEl.textContent; }).observe(document.getElementById('status'), { childList: true, characterData: true, subtree: true });
+setMenu(!isPhone());
+addEventListener('keydown', e => { if (e.key === 'Escape') select(null); if ((e.ctrlKey || e.metaKey) && e.key === 'z') undo(); });
+
+// ---------- Online play ----------
+// Two people on different devices share one table: a db document tables/<number> holding the game state,
+// who sits on which side, and the last move (so the other screen can animate it). Only the player whose
+// side is to move can move; everyone else watches. Works only inside the published artifact.
+const net = { db: null, user: null, me: null, canWrite: null, code: null, ref: null, unsub: null, seats: { w: null, b: null }, rev: -1, busy: false };
+const mySide = () => !net.code ? null : net.seats.w === net.me ? 'w' : net.seats.b === net.me ? 'b' : null;
+const nEl = id => document.getElementById(id);
+(async () => {
+  if (!window.claude || !window.claude.use) return;
+  const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+  if (!db || !user) return;
+  net.db = db; net.user = user; net.me = await user.id(); net.canWrite = await user.can('data.write');
+  if (!net.me) return;
+  nEl('online').hidden = false; nEl('n-off').hidden = true;
+})();
+function freshTable() {
+  return { state: JSON.stringify({ pieces: startPieces(), turn: 'w', used: { b: { 3: 0, 6: 0 }, w: { 3: 0, 6: 0 } }, winner: null, log: [] }), rev: 0, move: null };
+}
+async function joinTable() {
+  const code = (nEl('n-code').value || '1').trim().replace(/[^A-Za-z0-9-]/g, '').slice(0, 20) || '1';
+  leaveTable(true); BOT.on = false; botStatus();
+  net.code = code; net.rev = -1; net.ref = net.db.doc('tables/' + code);
+  history = []; select(null);
+  nEl('n-status').textContent = T('dbJoining', code);
+  net.unsub = net.ref.onSnapshot(snap => {
+    if (!snap.exists) {
+      if (net.canWrite !== false && !net.created) { net.created = true; net.ref.set({ ...freshTable(), seats: { w: null, b: null } }).catch(netError); }
+      return;
+    }
+    const d = snap.data();
+    net.seats = { w: d.seats?.w || null, b: d.seats?.b || null };
+    if (d.rev !== net.rev) applyRemote(d);
+    renderSeats();
+  }, netError);
+  renderSeats();
+}
+function leaveTable(silent) {
+  if (net.unsub) net.unsub();
+  net.unsub = null; net.code = null; net.ref = null; net.created = false; net.seats = { w: null, b: null };
+  if (!silent) { if (!load()) { pieces = startPieces(); } select(null); placeAll(true); ui(); renderSeats(); }
+}
+function netError(e) {
+  nEl('n-status').textContent = e && e.code === 'invalid_argument'
+    ? T('dbNoRight') : T('dbLost');
+}
+function applyRemote(d) {
+  const prev = net.rev; net.rev = d.rev;
+  const st = JSON.parse(d.state);
+  const m = d.move;
+  if (m && prev === d.rev - 1 && m.by !== net.me) {         // the opponent's move: walk it here too
+    const p = pieces.find(x => x.id === m.id), o = objs[m.id], before = p && used[p.s][p.t];
+    restore(JSON.stringify(st));
+    if (p && o) {
+      const [r1, c1] = rc(m.from), [r2, c2] = rc(m.to), n = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1)), path = [];
+      for (let i = 1; i <= n; i++) path.push(pos(k(r1 + Math.sign(r2 - r1) * i, c1 + Math.sign(c2 - c1) * i)).setY(TOP + 0.04));
+      walkPath(o, path, homeYaw(m.id[0])); startSound(o);
+      if (winner) { const L = caravanLine(winner); if (L) setTimeout(() => startVictory(winner, L), 1000 + 900 * n); }
+      if (LONG[p.t] < Infinity && used[p.s][p.t] !== before && longLeft(p) <= 0) { ui(); flash(T('longOver', TYPES[p.t].name), 3000); return; }
+    }
+  } else if (!(m && m.by === net.me && prev === d.rev - 1)) {  // a jump (joining, new game): place everything
+    restore(JSON.stringify(st)); select(null); placeAll(true);
+  }
+  ui();
+}
+async function pushState() {
+  if (!net.code) return;
+  net.rev += 1;
+  if (net.p2p) { p2pSend({ state: snapshot(), rev: net.rev, move: null }); return; }
+  try { await net.ref.set({ state: snapshot(), seats: net.seats, rev: net.rev, move: null }); }
+  catch (e) { netError(e); }
+}
+async function pushMove(id, from, to) {
+  if (!net.code) return;
+  if (net.p2p) { net.rev += 1; p2pSend({ state: snapshot(), rev: net.rev, move: { id, from, to, by: net.me } }); return; }
+  net.rev += 1;
+  try { await net.ref.set({ state: snapshot(), seats: net.seats, rev: net.rev, move: { id, from, to, by: net.me } }); }
+  catch (e) { netError(e); }
+}
+async function claimSeat(side) {
+  try {
+    const lease = await net.ref.acquire({ holder: net.me, ttlMs: 3000 });
+    if (!lease.acquired) { flash(T('seatBusy')); return; }
+    const snap = await net.ref.get(), d = snap.exists ? snap.data() : { ...freshTable(), seats: { w: null, b: null } };
+    const seats = { w: d.seats?.w || null, b: d.seats?.b || null };
+    if (seats[side] && seats[side] !== net.me) { flash(T('seatTaken')); return; }
+    for (const s of ['w', 'b']) if (seats[s] === net.me) seats[s] = null;
+    seats[side] = net.me;
+    await net.ref.set({ ...d, seats });
+    goView(side);
+  } catch (e) { netError(e); }
+}
+async function standUp() {
+  const seats = { ...net.seats }; for (const s of ['w', 'b']) if (seats[s] === net.me) seats[s] = null;
+  try { const d = (await net.ref.get()).data(); await net.ref.set({ ...d, seats }); } catch (e) { netError(e); }
+}
+async function newOnlineGame() {
+  if (net.p2p) { const d = { ...freshTable(), rev: net.rev + 1, move: null }; applyRemote(d); p2pSend(d); return; }
+  try { const d = (await net.ref.get()).data(); await net.ref.set({ ...d, ...freshTable(), rev: (d.rev || 0) + 1 }); } catch (e) { netError(e); }
+}
+async function renderSeats() {
+  if (net.p2p) {
+    const me = mySide();
+    nEl('p-turn').textContent = !me ? '' : winner ? T('over') : turn === me ? T('yourTurn', SIDE[me]) : T('theirTurn', SIDE[me]);
+    return;
+  }
+  const box = nEl('n-seats'); if (!box) return;
+  const online = !!net.code;
+  nEl('n-leave').hidden = !online; nEl('b-undo').hidden = online;
+  if (!online) { box.innerHTML = ''; nEl('n-status').textContent = T('dbHint'); return; }
+  const ids = [net.seats.w, net.seats.b].filter(Boolean);
+  const ps = ids.length ? await net.user.profiles(ids) : {};
+  box.textContent = '';
+  for (const s of ['w', 'b']) {
+    const row = document.createElement('div'); row.className = 'seat';
+    const who = document.createElement('span'), id = net.seats[s];
+    who.textContent = `${SIDE[s]}: ` + (id ? (id === net.me ? T('you') : (ps[id] && ps[id].name) || T('foeName')) : T('free'));
+    row.appendChild(who);
+    if (net.canWrite !== false) {
+      const b = document.createElement('button');
+      if (id === net.me) { b.textContent = T('standBtn'); b.onclick = standUp; }
+      else if (!id) { b.textContent = T('sitBtn'); b.onclick = () => claimSeat(s); }
+      if (b.textContent) row.appendChild(b);
+    }
+    box.appendChild(row);
+  }
+  const me = mySide();
+  nEl('n-status').textContent = net.canWrite === false ? T('dbViewer', net.code) : !me ? T('dbChoose', net.code) : winner ? T('dbOver', net.code) : turn === me ? T('dbYour', net.code) : T('dbTheirs', net.code);
+}
+
+// ---------- Online play on the website: direct browser-to-browser link (PeerJS) ----------
+// The player who creates a table plays Ақ and keeps the game; the one who joins with its number plays Қоңыр.
+// Moves travel as the same {state, rev, move} records the claude.ai table uses, so applyRemote() animates them.
+const p2p = { peer: null, conn: null };
+const PREFIX = 'ulykeruen-table-';
+function p2pReady() {
+  if (window.claude || !window.Peer) return;
+  nEl('p2p').hidden = false; nEl('n-off').hidden = true; p2pStatus(T('p2pHint'));
+}
+function p2pStatus(t) { nEl('p-status').textContent = t; }
+function p2pReset() {
+  try { if (p2p.conn) p2p.conn.close(); if (p2p.peer) p2p.peer.destroy(); } catch (e) {}
+  p2p.peer = p2p.conn = null; net.p2p = false; net.code = null; net.seats = { w: null, b: null };
+  nEl('p-leave').hidden = true; nEl('p-host').disabled = nEl('p-join').disabled = false; nEl('b-undo').hidden = false;
+}
+function p2pBegin(role, code) {
+  BOT.on = false; botStatus();
+  history = []; select(null);
+  net.p2p = true; net.code = 'стол ' + code; net.me = role; net.seats = { w: 'host', b: role === 'guest' ? 'guest' : null };
+  nEl('p-leave').hidden = false; nEl('p-host').disabled = nEl('p-join').disabled = true; nEl('b-undo').hidden = true;
+}
+function p2pAttach(c) {
+  p2p.conn = c;
+  c.on('open', () => {
+    if (net.me === 'host') { net.seats.b = 'guest'; c.send({ state: snapshot(), rev: net.rev, move: null, seats: net.seats }); }
+    p2pStatus(T('p2pJoined', SIDE[mySide()])); ui();
+  });
+  c.on('data', d => {
+    if (!d || typeof d.state !== 'string') return;
+    if (d.seats) net.seats = { w: d.seats.w || null, b: d.seats.b || null };
+    if (d.rev !== net.rev) applyRemote(d);
+    ui();
+  });
+  c.on('close', () => { p2pStatus(T('p2pLeft')); if (net.me === 'host') net.seats.b = null; ui(); });
+  c.on('error', () => p2pStatus(T('p2pLost')));
+}
+function p2pHost() {
+  p2pReset();
+  const code = String(1000 + Math.floor(Math.random() * 9000));
+  p2pBegin('host', code);
+  net.rev = -1; applyRemote({ ...freshTable(), rev: 0, move: null });
+  p2pStatus(T('p2pOpening'));
+  p2p.peer = new Peer(PREFIX + code);
+  p2p.peer.on('open', () => p2pStatus(T('p2pOpened', code)));
+  p2p.peer.on('connection', c => { if (p2p.conn && p2p.conn.open) { c.close(); return; } p2pAttach(c); });
+  p2p.peer.on('error', e => p2pStatus(e.type === 'unavailable-id' ? T('p2pIdTaken') : T('p2pFail')));
+}
+function p2pJoin() {
+  const code = (nEl('p-code').value || '').replace(/\D/g, '');
+  if (code.length !== 4) { p2pStatus(T('p2pNeed4')); return; }
+  p2pReset(); p2pBegin('guest', code); net.rev = -1;
+  p2pStatus(T('p2pJoining', code));
+  p2p.peer = new Peer();
+  p2p.peer.on('open', () => p2pAttach(p2p.peer.connect(PREFIX + code, { reliable: true })));
+  p2p.peer.on('error', e => p2pStatus(e.type === 'peer-unavailable' ? T('p2pNoTable', code) : T('p2pJoinFail')));
+}
+function p2pSend(d) { if (p2p.conn && p2p.conn.open) p2p.conn.send({ ...d, seats: net.seats }); }
+
+// ---------- Computer opponent ----------
+// The bot judges a position by how many moves each side still needs to assemble its best caravan line:
+// for every line a side may win on, the cheapest way to send its seven figures to the seven cities
+// (an assignment problem), where a city held by the opponent costs extra. It searches 1–3 plies ahead
+// with alpha–beta, looking at the most promising moves first.
+const BOT = { on: false, side: 'b', human: 'w', level: 2, busy: false };
+const IX = key => { const [r, c] = rc(key); return r * N + c; }, KEY = i => k(Math.floor(i / N), i % N);
+const RAYS = [...Array(N * N)].map((_, i) => {
+  const key = KEY(i), [r0, c0] = rc(key), rays = [];
+  for (const n of NEIGH[key] || []) {
+    const [r1, c1] = rc(n), dr = r1 - r0, dc = c1 - c0, ray = [];
+    let cur = key, r = r0, c = c0;
+    while (r + dr >= 0 && r + dr < N && c + dc >= 0 && c + dc < N && hasEdge(cur, k(r + dr, c + dc))) { r += dr; c += dc; cur = k(r, c); ray.push(r * N + c); }
+    rays.push(ray);
+  }
+  return rays;
+});
+const DIST = [...Array(N * N)].map((_, s) => {             // steps between cities along the lines
+  const d = new Array(N * N).fill(99); d[s] = 0; const q = [s];
+  while (q.length) { const a = q.shift(); for (const n of NEIGH[KEY(a)] || []) { const b = IX(n); if (d[b] > d[a] + 1) { d[b] = d[a] + 1; q.push(b); } } }
+  return d;
+});
+const BLINES = LINES.map(L => ({ cells: L.cells.map(IX), sides: L.sides }));
+
+function hungarian(a) {                                     // min-cost perfect assignment for a square matrix
+  const n = a.length, u = new Array(n + 1).fill(0), v = new Array(n + 1).fill(0), p = new Array(n + 1).fill(0), way = new Array(n + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    p[0] = i; let j0 = 0; const minv = new Array(n + 1).fill(Infinity), used = new Array(n + 1).fill(false);
+    do {
+      used[j0] = true; const i0 = p[j0]; let delta = Infinity, j1 = 0;
+      for (let j = 1; j <= n; j++) if (!used[j]) {
+        const cur = a[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+      }
+      for (let j = 0; j <= n; j++) if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta;
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do { const j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+  }
+  return -v[0];
+}
+// search state: piece cells, board occupancy, long moves used, side to move
+function botState() {
+  const st = { cell: [], side: [], type: [], occ: new Array(N * N).fill(-1), used: { w: { ...used.w }, b: { ...used.b } }, turn };
+  pieces.forEach((p, i) => { st.cell[i] = IX(p.cell); st.side[i] = p.s; st.type[i] = p.t; st.occ[st.cell[i]] = i; });
+  return st;
+}
+function genMoves(st, s) {
+  const out = [];
+  for (let i = 0; i < st.cell.length; i++) {
+    if (st.side[i] !== s) continue;
+    const t = st.type[i], lim = LONG[t], canLong = lim === Infinity || (lim !== undefined && st.used[s][t] < lim);
+    for (const ray of RAYS[st.cell[i]]) {
+      for (let j = 0; j < ray.length; j++) {
+        if (st.occ[ray[j]] !== -1) break;
+        out.push({ i, to: ray[j], long: j > 0 });
+        if (!canLong) break;
+      }
+    }
+  }
+  return out;
+}
+function doMove(st, m) {
+  const from = st.cell[m.i], undo = { m, from, prevTurn: st.turn };
+  st.occ[from] = -1; st.occ[m.to] = m.i; st.cell[m.i] = m.to;
+  if (m.long && LONG[st.type[m.i]] !== Infinity) st.used[st.side[m.i]][st.type[m.i]]++;
+  st.turn = st.turn === 'w' ? 'b' : 'w';
+  return undo;
+}
+function undoMove(st, u) {
+  const m = u.m; st.occ[m.to] = -1; st.occ[u.from] = m.i; st.cell[m.i] = u.from;
+  if (m.long && LONG[st.type[m.i]] !== Infinity) st.used[st.side[m.i]][st.type[m.i]]--;
+  st.turn = u.prevTurn;
+}
+function hasCaravan(st, s) {
+  return BLINES.some(L => L.sides.includes(s) && L.cells.every(c => st.occ[c] !== -1 && st.side[st.occ[c]] === s));
+}
+function travel(st, i, cell) {
+  const d = DIST[st.cell[i]][cell], t = st.type[i], s = st.side[i];
+  if (LONG[t] === Infinity) return Math.ceil(d / 3);
+  if (LONG[t] && st.used[s][t] < LONG[t]) return d * 0.8;
+  return d;
+}
+function caravanCost(st, s) {
+  const mine = []; for (let i = 0; i < st.cell.length; i++) if (st.side[i] === s) mine.push(i);
+  let best = Infinity;
+  for (const L of BLINES) {
+    if (!L.sides.includes(s)) continue;
+    const m = mine.map(i => L.cells.map(c => travel(st, i, c) + (st.occ[c] !== -1 && st.side[st.occ[c]] !== s ? 4 : 0)));
+    best = Math.min(best, hungarian(m));
+  }
+  return best;
+}
+const evalFor = (st, s) => caravanCost(st, s === 'w' ? 'b' : 'w') * 1.0 - caravanCost(st, s) * 1.15;
+const WIN = 100000;
+function negamax(st, depth, alpha, beta, ply, beam) {
+  const s = st.turn, foe = s === 'w' ? 'b' : 'w';
+  if (depth === 0) return evalFor(st, s);
+  let moves = genMoves(st, s);
+  if (!moves.length) return evalFor(st, s);
+  // order: wins first, then by the static value after the move
+  const scored = moves.map(m => { const u = doMove(st, m); const win = hasCaravan(st, s); const v = win ? WIN : -evalFor(st, foe); undoMove(st, u); return { m, v, win }; });
+  scored.sort((a, b) => b.v - a.v);
+  if (scored[0].win) return WIN - ply;
+  let best = -Infinity;
+  for (const { m } of scored.slice(0, beam)) {
+    const u = doMove(st, m);
+    const v = -negamax(st, depth - 1, -beta, -alpha, ply + 1, beam);
+    undoMove(st, u);
+    if (v > best) best = v;
+    if (v > alpha) alpha = v;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+function chooseBotMove() {
+  const st = botState(), s = BOT.side, foe = s === 'w' ? 'b' : 'w';
+  const moves = genMoves(st, s);
+  if (!moves.length) return null;
+  const depth = BOT.level === 1 ? 1 : BOT.level === 2 ? 2 : 3, beam = BOT.level === 3 ? 9 : 14;
+  const results = moves.map(m => {
+    const u = doMove(st, m);
+    const v = hasCaravan(st, s) ? WIN : depth > 1 ? -negamax(st, depth - 1, -Infinity, Infinity, 1, beam) : -evalFor(st, foe);
+    undoMove(st, u);
+    return { m, v: v + Math.random() * (BOT.level === 1 ? 3 : 0.3) };
+  }).sort((a, b) => b.v - a.v);
+  const pickFrom = BOT.level === 1 && Math.random() < 0.35 ? results.slice(0, Math.min(4, results.length)) : results.slice(0, 1);
+  const r = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+  return { piece: pieces[r.m.i], cell: KEY(r.m.to) };
+}
+function scheduleBot() {
+  if (!BOT.on || winner || turn !== BOT.side || BOT.busy) return;
+  BOT.busy = true; nEl('bot-status').textContent = T('thinking');
+  const wait = () => Object.values(objs).some(o => o.userData.seq && o.userData.seq.length);
+  const go = () => {
+    if (wait()) { setTimeout(go, 200); return; }
+    setTimeout(() => {
+      const mv = BOT.on && turn === BOT.side && !winner ? chooseBotMove() : null;
+      BOT.busy = false; botStatus();
+      if (!mv) return;
+      select(mv.piece);
+      setTimeout(() => { if (BOT.on && turn === BOT.side) move(mv.piece, mv.cell); }, 450);
+    }, 60);
+  };
+  setTimeout(go, 500);
+}
+const LEVEL_NAME = () => T(['easy', 'medium', 'hard'][BOT.level - 1]);
+function botStatus() { nEl('bot-status').textContent = BOT.on ? T('botOn', LEVEL_NAME(), SIDE[BOT.side]) : T('botHint'); nEl('bot-stop').hidden = !BOT.on; }
+function startBotGame() {
+  if (net.p2p) p2pReset(); if (net.code) leaveTable(true);
+  BOT.on = true; BOT.side = BOT.human === 'w' ? 'b' : 'w';
+  newGame(); goView(BOT.human); botStatus();
+  setTimeout(throwAsyk, 900);
+}
+
+// ---------- Start ----------
+(async () => {
+  try { await Promise.race([document.fonts.load('700 80px "PT Serif"'), new Promise(r => setTimeout(r, 2500))]); } catch (e) {}
+  buildDiscs();
+  await loadFigures();
+  if (!load()) pieces = startPieces();
+  for (const p of pieces) { const o = makePiece(p.s, p.t); o.userData.pid = p.id; scene.add(o); objs[p.id] = o; scene.add(labels[p.id] = nameSprite(TYPES[p.t].name)); }
+  placeAll(false);
+  addBazaarLife();
+  // a narrow (portrait) screen needs the camera further back to fit the board
+  const aspect = view.clientWidth / view.clientHeight;
+  for (const v of Object.values(VIEWS)) { const f = Math.max(1, 1.15 / aspect); v[0] *= f; v[1] *= f; v[2] *= f; }
+  camera.position.set(...VIEWS.b);
+  applyLang(); document.getElementById('b-sound').textContent = T('sound'); botStatus();
+  ui();
+  document.getElementById('loading').remove();
+  p2pReady();
+  requestAnimationFrame(frame_);
+})();
+</script>
+</body>
+</html>
